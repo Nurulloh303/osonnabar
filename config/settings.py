@@ -16,6 +16,13 @@ INSECURE_DEV_KEY = "insecure-dev-key-do-not-use-in-prod"
 SECRET_KEY = env("DJANGO_SECRET_KEY", default=INSECURE_DEV_KEY)
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
+# Docker HEALTHCHECK konteyner ichidan `127.0.0.1` orqali uradi — tashqi domenni
+# qanday sozlasak ham bu doim ruxsat etilgan bo'lishi kerak. Xavfsiz: `127.0.0.1`
+# faqat konteynerning o'z ichidan yetib boriladi, tashqaridan emas (`expose`,
+# `ports` emas).
+for _loopback_host in ("127.0.0.1", "localhost"):
+    if _loopback_host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_loopback_host)
 
 #: `True` bo'lsa — server internetga chiqarilgan rejimda ishlaydi.
 IS_PRODUCTION = not DEBUG
