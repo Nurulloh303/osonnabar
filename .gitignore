@@ -1,0 +1,26 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Barcha muhit fayllari — sirlar git'ga tushmasligi uchun.
+# `!` qatorlari faqat namunalarni qaytaradi.
+.env
+.env.*
+!.env.example
+!.env.production.example
+*.log
+db.sqlite3
+db.sqlite3-journal
+
+media/
+staticfiles/
+.pytest_cache/
+.coverage
+htmlcov/
+
+.idea/
+.vscode/
+.DS_Store

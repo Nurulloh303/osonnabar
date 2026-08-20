@@ -1,0 +1,47 @@
+# ⚠️ Bu fayl FAQAT lokal ishlab chiqish uchun (runserver, demo ma'lumotlar,
+#    oddiy parollar). Serverga joylash uchun docker-compose.prod.yml ishlating.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: osonnavbat
+      POSTGRES_USER: osonnavbat
+      POSTGRES_PASSWORD: osonnavbat
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      # 127.0.0.1 ga bog'landi: aks holda bu fayl serverda ishga tushirilsa
+      # baza standart parol bilan butun internetga ochilib qolardi.
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U osonnavbat"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  api:
+    build: .
+    env_file: .env
+    environment:
+      SEED_DEMO_DATA: "1"
+    volumes:
+      - .:/app
+      - media:/app/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: python manage.py runserver 0.0.0.0:8000
+
+volumes:
+  pgdata:
+  media:
