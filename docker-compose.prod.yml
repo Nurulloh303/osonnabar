@@ -1,4 +1,4 @@
-# osonNavbat — production (api.qulaybron.uz)
+# osonNavbat — production (api.qulaynavbat.uz)
 #
 #   cp .env.production.example .env   # va to'ldiring
 #   docker compose -f docker-compose.prod.yml up -d --build

@@ -1,19 +1,19 @@
-# osonNavbat — serverga joylash (qulaybron.uz)
+# osonNavbat — serverga joylash (qulaynavbat.uz)
 
 Arxitektura:
 
 ```
-  qulaybron.uz            api.qulaybron.uz
+  qulaynavbat.uz            api.qulaynavbat.uz
   (Next.js frontend)  ──▶  nginx :443  ──▶  gunicorn (api:8000)
                              │                   ├── postgres (ichki tarmoq)
                              ├── /media/         └── redis    (ichki tarmoq)
                              └── /static/
 ```
 
-`qulaybron.uz` va `api.qulaybron.uz` bitta **site** (eTLD+1 bir xil) — shuning uchun
+`qulaynavbat.uz` va `api.qulaynavbat.uz` bitta **site** (eTLD+1 bir xil) — shuning uchun
 auth cookie'lar `SameSite=Lax` bilan ishlaydi va bu `SameSite=None` dan xavfsizroq.
 
-Backend (bu papka) **faqat** `api.qulaybron.uz` da turadi. Frontend alohida joyda
+Backend (bu papka) **faqat** `api.qulaynavbat.uz` da turadi. Frontend alohida joyda
 (masalan Vercel) joylashtiriladi — bu qo'llanma ularni bir-biriga ulashni ko'rsatadi.
 
 ---
@@ -104,15 +104,15 @@ Domen registratoringizda (yoki DO DNS'ga qo'shgan bo'lsangiz — shu yerda):
 
 | Yozuv | Turi | Qiymat |
 |---|---|---|
-| `api.qulaybron.uz` | A | `<DROPLET_IP>` |
+| `api.qulaynavbat.uz` | A | `<DROPLET_IP>` |
 
-Frontend qayerda tursa, `qulaybron.uz` shu yerga qarab qoladi (masalan Vercel'ning
+Frontend qayerda tursa, `qulaynavbat.uz` shu yerga qarab qoladi (masalan Vercel'ning
 o'ziga xos A/CNAME yozuvi) — buni backend bilan bog'liq emas, o'zgartirish shart emas.
 
 Tarqalishini tekshirish (1 soatgacha vaqt olishi mumkin):
 
 ```bash
-dig +short api.qulaybron.uz
+dig +short api.qulaynavbat.uz
 ```
 
 ## 4. Muhit fayli
@@ -156,7 +156,7 @@ docker run --rm -p 80:80 \
   -v "$PWD/deploy/certbot/conf:/etc/letsencrypt" \
   -v "$PWD/deploy/certbot/www:/var/www/certbot" \
   certbot/certbot certonly --standalone \
-  -d api.qulaybron.uz --agree-tos -m nurulloh166@gmail.com --no-eff-email
+  -d api.qulaynavbat.uz --agree-tos -m nurulloh166@gmail.com --no-eff-email
 ```
 
 Keyinchalik `certbot` konteyneri uni har 12 soatda o'zi yangilab turadi.
@@ -176,7 +176,7 @@ docker compose -f docker-compose.prod.yml logs -f api
 ## 7. Tekshirish
 
 ```bash
-curl -s https://api.qulaybron.uz/health/
+curl -s https://api.qulaynavbat.uz/health/
 ```
 
 Kutilgan: `{"status": "ok", "service": "osonnavbat-api", "database": true}`
@@ -184,13 +184,13 @@ Kutilgan: `{"status": "ok", "service": "osonnavbat-api", "database": true}`
 CORS to'g'ri ishlayotganini tekshirish (frontend nomidan preflight):
 
 ```bash
-curl -si -X OPTIONS https://api.qulaybron.uz/api/v1/auth/otp/request/ -H "Origin: https://qulaybron.uz" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type,x-csrftoken" | grep -i access-control
+curl -si -X OPTIONS https://api.qulaynavbat.uz/api/v1/auth/otp/request/ -H "Origin: https://qulaynavbat.uz" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type,x-csrftoken" | grep -i access-control
 ```
 
 Kutilgan javob:
 
 ```
-access-control-allow-origin: https://qulaybron.uz
+access-control-allow-origin: https://qulaynavbat.uz
 access-control-allow-credentials: true
 ```
 
@@ -198,13 +198,13 @@ access-control-allow-credentials: true
 
 ## Frontend tomonida nima qilish kerak
 
-API base URL: `https://api.qulaybron.uz/api/v1`
+API base URL: `https://api.qulaynavbat.uz/api/v1`
 
 1. **Muhit o'zgaruvchisi** — frontend hosting'ida (Vercel bo'lsa, project → Settings
    → Environment Variables):
 
    ```
-   NEXT_PUBLIC_API_URL=https://api.qulaybron.uz/api/v1
+   NEXT_PUBLIC_API_URL=https://api.qulaynavbat.uz/api/v1
    ```
 
 2. **Har bir so'rovda `credentials: "include"`** — tokenlar `httpOnly` cookie'da,
@@ -227,12 +227,12 @@ API base URL: `https://api.qulaybron.uz/api/v1`
    qo'ying (bearer token bilan Swagger/mobil ishlatsangiz bu shart emas).
 
 4. **Google Sign-In** ishlatilsa — Google Cloud Console → OAuth client →
-   *Authorized JavaScript origins* ga qo'shing: `https://qulaybron.uz`
+   *Authorized JavaScript origins* ga qo'shing: `https://qulaynavbat.uz`
 
-5. Frontend `qulaybron.uz` boshqa joyda (Vercel va h.k.) turibdimi, yoki uni ham
+5. Frontend `qulaynavbat.uz` boshqa joyda (Vercel va h.k.) turibdimi, yoki uni ham
    shu DigitalOcean droplet'ga qo'yish kerakmi — agar ikkinchisi bo'lsa ayting,
    `docker-compose.prod.yml` ga frontend uchun alohida konteyner va nginx'ga
-   apex domen (`qulaybron.uz`) uchun blok qo'shib beraman.
+   apex domen (`qulaynavbat.uz`) uchun blok qo'shib beraman.
 
 ---
 

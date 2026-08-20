@@ -162,7 +162,7 @@ else:
         )
 
 # ── CORS / CSRF ──────────────────────────────────────────────────────────
-# Frontend (qulaybron.uz) va API (api.qulaybron.uz) alohida originlarda turadi,
+# Frontend (qulaynavbat.uz) va API (api.qulaynavbat.uz) alohida originlarda turadi,
 # shuning uchun brauzer har bir so'rovdan oldin CORS preflight yuboradi.
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:3000"])
 #: Vercel/preview deploylar uchun: `^https://.*\.vercel\.app$` kabi shablonlar.
