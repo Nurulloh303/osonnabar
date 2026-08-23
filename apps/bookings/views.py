@@ -11,6 +11,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.common.exceptions import BusinessRuleError, SlotTakenError
+from apps.notifications import services as notify
 from apps.salons.models import Barber
 
 from .availability import has_conflict
@@ -100,6 +101,7 @@ class BookingViewSet(
             raise
 
         logger.info("Yangi bron %s: %s → %s", booking.id, request.user.phone, barber.pk)
+        notify.booking_created_for_barber(booking)
         output = BookingSerializer(booking, context=self.get_serializer_context())
         return Response(output.data, status=status.HTTP_201_CREATED)
 
@@ -120,6 +122,7 @@ class BookingViewSet(
         booking.status = BookingStatus.CONFIRMED
         booking.confirmed_at = timezone.now()
         booking.save(update_fields=["status", "confirmed_at", "updated_at"])
+        notify.booking_confirmed(booking)
         return Response(BookingSerializer(booking, context=self.get_serializer_context()).data)
 
     @extend_schema(request=None, responses={200: BookingSerializer}, summary="Yakunlash (usta)")
@@ -139,6 +142,7 @@ class BookingViewSet(
             ).count()
             Barber.objects.filter(pk=booking.barber_id).update(completed_bookings=completed)
 
+        notify.booking_completed(booking)
         return Response(BookingSerializer(booking, context=self.get_serializer_context()).data)
 
     @extend_schema(
@@ -171,6 +175,7 @@ class BookingViewSet(
         booking.save(
             update_fields=["status", "cancelled_at", "cancelled_by", "cancel_reason", "updated_at"]
         )
+        notify.booking_cancelled(booking, cancelled_by=user)
         return Response(BookingSerializer(booking, context=self.get_serializer_context()).data)
 
     @extend_schema(responses={200: BookingStatusCountSerializer}, summary="Holatlar bo'yicha sanoq")

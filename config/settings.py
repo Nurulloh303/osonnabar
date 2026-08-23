@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "apps.bookings",
     "apps.reviews",
     "apps.dashboard",
+    "apps.notifications",
 ]
 
 MIDDLEWARE = [
@@ -370,6 +371,20 @@ PLAYMOBILE_BASE_URL = env("PLAYMOBILE_BASE_URL", default="http://91.204.239.44/b
 
 # ── Google OAuth ─────────────────────────────────────────────────────────
 GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", default="")
+
+# ── Web Push (VAPID) ─────────────────────────────────────────────────────
+# Kalitlarni yaratish:  python manage.py generate_vapid_keys
+# Public kalit maxfiy emas (brauzerga baribir ochiq), private — maxfiy.
+VAPID_PUBLIC_KEY = env("VAPID_PUBLIC_KEY", default="")
+VAPID_PRIVATE_KEY = env("VAPID_PRIVATE_KEY", default="")
+#: RFC 8292 talabi: push xizmati muammo bo'lsa shu manzilga murojaat qiladi.
+VAPID_SUBJECT = env("VAPID_SUBJECT", default="mailto:admin@qulaynavbat.uz")
+
+#: Kalitlar bo'lmasa push jimgina o'chadi — sayt ichidagi xabarlar baribir ishlaydi.
+PUSH_ENABLED = env.bool("PUSH_ENABLED", default=True) and bool(VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY)
+#: Push'ni alohida oqimda yuborish. Testlarda `False` qilinadi (natija oldindan aniq bo'lsin).
+PUSH_SEND_ASYNC = env.bool("PUSH_SEND_ASYNC", default=True)
+PUSH_TIMEOUT_SECONDS = env.int("PUSH_TIMEOUT_SECONDS", default=10)
 
 # ── Biznes qoidalari ─────────────────────────────────────────────────────
 BOOKING_CANCEL_WINDOW_MINUTES = env.int("BOOKING_CANCEL_WINDOW_MINUTES", default=60)

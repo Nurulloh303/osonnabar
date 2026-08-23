@@ -53,6 +53,25 @@ services:
       redis:
         condition: service_healthy
 
+  # Navbat eslatmalari: har 15 daqiqada bir marta bazani tekshiradi.
+  # `entrypoint` ataylab almashtirilgan — migratsiya/collectstatic'ni faqat `api`
+  # bajarsin, ikkalasi bir vaqtda migratsiya qilib qolmasin.
+  cron:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      'while :; do
+         python manage.py send_booking_reminders || echo "eslatma buyrugi xato berdi";
+         sleep 900;
+       done'
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped

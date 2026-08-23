@@ -52,6 +52,10 @@ class Booking(BaseModel):
     )
     cancel_reason = models.CharField("bekor qilish sababi", max_length=255, blank=True)
 
+    #: Eslatma yuborilgan vaqt. Cron oynasi bir-birining ustiga tushganda
+    #: bitta navbatga ikkinchi marta eslatma ketmasligi uchun.
+    reminder_sent_at = models.DateTimeField("eslatma yuborilgan", null=True, blank=True)
+
     class Meta:
         db_table = "bookings"
         verbose_name = "navbat"

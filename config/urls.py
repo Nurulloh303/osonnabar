@@ -34,6 +34,7 @@ api_v1 = [
     path("", include("apps.bookings.urls")),
     path("", include("apps.reviews.urls")),
     path("", include("apps.dashboard.urls")),
+    path("", include("apps.notifications.urls")),
 ]
 
 urlpatterns = [
