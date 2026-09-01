@@ -1,9 +1,13 @@
 """Testlar uchun yordamchi obyektlar."""
 
+import importlib
 from datetime import time, timedelta
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.signals import setting_changed
+from django.dispatch import receiver
+from django.urls import clear_url_caches
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -11,6 +15,32 @@ from apps.accounts.cookies import issue_tokens
 from apps.salons.models import Barber, BarberSchedule, Salon
 
 User = get_user_model()
+
+
+def reload_urlconf() -> None:
+    """URL jadvalini qaytadan quradi.
+
+    `apps/accounts/urls.py` `AUTH_SMS_ENABLED` ga qarab OTP manzillarini
+    ro'yxatga oladi. Bu shart modul import qilinganda BIR MARTA bajariladi,
+    shuning uchun `override_settings` bilan bayroqni o'zgartirish yetarli emas —
+    modullarni qayta yuklash kerak.
+    """
+    for name in ("apps.accounts.urls", "config.urls"):
+        importlib.reload(importlib.import_module(name))
+    clear_url_caches()
+
+
+@receiver(setting_changed)
+def _reload_urls_when_flag_changes(sender, setting, **kwargs):
+    """`AUTH_SMS_ENABLED` o'zgarganda URL jadvalini avtomatik qayta quradi.
+
+    `tearDownClass` da qo'lda qilib bo'lmaydi: Django `override_settings` ni
+    `addClassCleanup` orqali o'chiradi, ya'ni `tearDownClass` tugagandan KEYIN.
+    Signal esa sozlama qo'llangandan/qaytarilgandan keyin darhol keladi —
+    ikkala yo'nalishda ham to'g'ri ishlaydi.
+    """
+    if setting == "AUTH_SMS_ENABLED":
+        reload_urlconf()
 
 DEFAULT_SERVICES = [
     {"name": "Soch olish", "price": 50000, "duration_minutes": 30},

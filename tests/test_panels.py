@@ -1,5 +1,6 @@
 from datetime import time, timedelta
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -151,6 +152,7 @@ class SuperAdminPanelTests(TestCase):
         response = self.api.post(
             "/api/v1/super-admin/barbers/",
             {
+                "email": "yangi.usta@gmail.com",
                 "phone": "901239999",
                 "full_name": "Yangi Usta",
                 "specialty": "men",
@@ -160,9 +162,49 @@ class SuperAdminPanelTests(TestCase):
         )
         self.assertEqual(response.status_code, 201, response.data)
 
-        barber = Barber.objects.get(profile__phone="+998901239999")
+        barber = Barber.objects.get(profile__email="yangi.usta@gmail.com")
         self.assertEqual(barber.profile.role, "barber")
+        self.assertEqual(barber.profile.phone, "+998901239999")
         self.assertEqual(barber.services[0]["price"], 45000)
+
+    def test_create_barber_requires_email(self):
+        """Email — ustaning Google orqali kirish yo'li, usiz u tizimga kira olmaydi."""
+        response = self.api.post(
+            "/api/v1/super-admin/barbers/",
+            {"phone": "901239998", "full_name": "Emailsiz Usta"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("email", response.data["errors"])
+
+    def test_create_barber_without_phone_is_allowed(self):
+        """Telefon ixtiyoriy — Google akkaunti yetarli."""
+        response = self.api.post(
+            "/api/v1/super-admin/barbers/",
+            {"email": "telefonsiz@gmail.com", "full_name": "Telefonsiz Usta"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201, response.data)
+        barber = Barber.objects.get(profile__email="telefonsiz@gmail.com")
+        self.assertIsNone(barber.profile.phone)
+
+    def test_existing_client_promoted_to_barber_keeps_account(self):
+        """Google orqali kirgan mijozni usta qilib tayinlash — yangi akkaunt ochilmasin."""
+        User = get_user_model()
+        existing = User.objects.create_user(
+            email="mijoz@gmail.com", full_name="Mijoz", google_sub="sub-abc"
+        )
+        response = self.api.post(
+            "/api/v1/super-admin/barbers/",
+            {"email": "mijoz@gmail.com", "full_name": "Mijoz"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201, response.data)
+
+        existing.refresh_from_db()
+        self.assertEqual(existing.role, "barber")
+        self.assertEqual(existing.google_sub, "sub-abc")  # Google bog'lanishi saqlanadi
+        self.assertEqual(User.objects.filter(email="mijoz@gmail.com").count(), 1)
 
     def test_block_and_activate_barber(self):
         self.api.post(f"/api/v1/super-admin/barbers/{self.barber.id}/block/")

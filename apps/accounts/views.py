@@ -18,6 +18,7 @@ from .cookies import clear_auth_cookies, issue_tokens, set_auth_cookies
 from .google import verify_google_id_token
 from .models import OTPPurpose, PhoneOTP, User
 from .serializers import (
+    AuthMethodsSerializer,
     AuthResponseSerializer,
     AvatarUploadSerializer,
     GoogleAuthSerializer,
@@ -60,6 +61,28 @@ class CSRFView(APIView):
     def get(self, request):
         token = get_token(request)
         return Response({"detail": "ok", "csrftoken": token})
+
+
+@extend_schema(tags=["auth"])
+class AuthMethodsView(APIView):
+    """Frontend qaysi kirish usullarini ko'rsatishini shu yerdan biladi.
+
+    Google tugmasi uchun `google_client_id` ham qaytariladi — u maxfiy emas,
+    brauzerda baribir ochiq ko'rinadi.
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes: list = []
+
+    @extend_schema(responses=AuthMethodsSerializer, summary="Mavjud kirish usullari")
+    def get(self, request):
+        return Response(
+            {
+                "google": bool(settings.GOOGLE_CLIENT_ID),
+                "google_client_id": settings.GOOGLE_CLIENT_ID,
+                "sms": settings.AUTH_SMS_ENABLED,
+            }
+        )
 
 
 @extend_schema(tags=["auth"])
@@ -200,6 +223,7 @@ class GoogleAuthView(APIView):
 
     permission_classes = [AllowAny]
     authentication_classes: list = []
+    throttle_scope = "google_auth"
 
     @extend_schema(
         request=GoogleAuthSerializer,
@@ -211,10 +235,24 @@ class GoogleAuthView(APIView):
         serializer.is_valid(raise_exception=True)
         info = verify_google_id_token(serializer.validated_data["id_token"])
 
+        if not info["email"]:
+            # `email_verified` tekshirilgan, lekin scope'da email bo'lmasa bo'sh
+            # keladi. Emailsiz akkaunt yaratsak, foydalanuvchi keyin boshqa
+            # qurilmadan kirganda uni bog'lab bo'lmaydi.
+            return Response(
+                {
+                    "detail": "Google akkauntingizda email ko'rinmadi. Email ruxsatini bering.",
+                    "code": "google_no_email",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         created = False
         with transaction.atomic():
             user = User.objects.filter(google_sub=info["sub"]).first()
-            if user is None and info["email"]:
+            if user is None:
+                # Admin oldindan yaratib qo'ygan akkaunt (masalan usta) shu yerda
+                # topiladi va Google'ga bog'lanadi — roli saqlanib qoladi.
                 user = User.objects.filter(email__iexact=info["email"]).first()
                 if user is not None:
                     user.google_sub = info["sub"]

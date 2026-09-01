@@ -287,6 +287,7 @@ REST_FRAMEWORK = {
         "user": env("THROTTLE_USER", default="300/min"),
         "otp_request": env("THROTTLE_OTP_REQUEST", default="5/hour"),
         "otp_verify": env("THROTTLE_OTP_VERIFY", default="15/hour"),
+        "google_auth": env("THROTTLE_GOOGLE_AUTH", default="30/hour"),
         "booking_create": env("THROTTLE_BOOKING_CREATE", default="30/hour"),
     },
     # ⚠️ Nginx orqasida MAJBURIY. Bo'sh qolsa DRF butun `X-Forwarded-For`
@@ -336,6 +337,13 @@ SPECTACULAR_SETTINGS = {
 }
 
 # ── SMS / OTP ────────────────────────────────────────────────────────────
+#: Telefon + SMS orqali kirish yoqilganmi.
+#: `False` (joriy holat) — ro'yxatdan o'tish FAQAT Google orqali, `/auth/otp/*`
+#: manzillari umuman ro'yxatga olinmaydi (404). Kod o'chirilmagan: ustalarning
+#: hammasida Google akkaunt bo'lmasligi mumkin, kerak bo'lsa bir bayroq bilan
+#: qaytariladi.
+AUTH_SMS_ENABLED = env.bool("AUTH_SMS_ENABLED", default=False)
+
 SMS_BACKENDS = {
     "console": "apps.accounts.sms.backends.ConsoleSMSBackend",
     "eskiz": "apps.accounts.sms.backends.EskizSMSBackend",
@@ -371,6 +379,15 @@ PLAYMOBILE_BASE_URL = env("PLAYMOBILE_BASE_URL", default="http://91.204.239.44/b
 
 # ── Google OAuth ─────────────────────────────────────────────────────────
 GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", default="")
+
+if IS_PRODUCTION and not AUTH_SMS_ENABLED and not GOOGLE_CLIENT_ID:
+    # SMS o'chirilgan bo'lsa Google — yagona kirish yo'li. Kalitsiz hech kim
+    # tizimga kira olmaydi, shuning uchun jimgina ishga tushirmaymiz.
+    raise RuntimeError(
+        "GOOGLE_CLIENT_ID to'ldirilmagan, AUTH_SMS_ENABLED esa False — bu holatda "
+        "hech kim ro'yxatdan o'ta olmaydi. Google Cloud Console'dan OAuth Client ID "
+        "oling yoki vaqtincha AUTH_SMS_ENABLED=True qiling."
+    )
 
 # ── Web Push (VAPID) ─────────────────────────────────────────────────────
 # Kalitlarni yaratish:  python manage.py generate_vapid_keys

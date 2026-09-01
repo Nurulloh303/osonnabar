@@ -42,6 +42,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
 class AdminBarberSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source="profile.full_name", read_only=True)
     phone = serializers.CharField(source="profile.phone", read_only=True)
+    email = serializers.CharField(source="profile.email", read_only=True)
     is_account_active = serializers.BooleanField(source="profile.is_active", read_only=True)
     salon_name = serializers.CharField(source="salon.name", read_only=True, default=None)
     revenue_total = serializers.IntegerField(read_only=True, default=0)
@@ -55,6 +56,7 @@ class AdminBarberSerializer(serializers.ModelSerializer):
             "id",
             "full_name",
             "phone",
+            "email",
             "is_account_active",
             "salon",
             "salon_name",
@@ -78,9 +80,20 @@ class AdminBarberSerializer(serializers.ModelSerializer):
 
 
 class AdminBarberCreateSerializer(serializers.Serializer):
-    """Super admin yangi usta qo'shadi: profil + usta yozuvi bitta so'rovda."""
+    """Super admin yangi usta qo'shadi: profil + usta yozuvi bitta so'rovda.
 
-    phone = serializers.CharField()
+    ⚠️ `email` — MAJBURIY, chunki usta tizimga Google orqali kiradi. U shu
+    email bilan Google'da kirganda `GoogleAuthView` mavjud akkauntni topib,
+    `google_sub` ni bog'laydi va **usta roli saqlanib qoladi**. Email noto'g'ri
+    bo'lsa, usta kirganda unga alohida "mijoz" akkaunti ochilib ketadi.
+
+    `phone` — ixtiyoriy, faqat bog'lanish uchun.
+    """
+
+    email = serializers.EmailField(
+        help_text="Ustaning Google akkaunti emaili — u shu orqali tizimga kiradi."
+    )
+    phone = serializers.CharField(required=False, allow_blank=True)
     full_name = serializers.CharField(max_length=150)
     salon = serializers.PrimaryKeyRelatedField(queryset=Salon.objects.all(), required=False, allow_null=True)
     specialty = serializers.ChoiceField(choices=Barber._meta.get_field("specialty").choices, default="men")
@@ -91,7 +104,16 @@ class AdminBarberCreateSerializer(serializers.Serializer):
     services = ServiceItemSerializer(many=True, required=False)
     default_slot_minutes = serializers.IntegerField(required=False, min_value=10, max_value=240, default=30)
 
+    def validate_email(self, value):
+        email = value.strip().lower()
+        user = User.objects.filter(email__iexact=email).first()
+        if user and hasattr(user, "barber"):
+            raise serializers.ValidationError("Bu email allaqachon usta sifatida ro'yxatdan o'tgan.")
+        return email
+
     def validate_phone(self, value):
+        if not value or not value.strip():
+            return ""
         phone = normalize_phone(value)
         user = User.objects.filter(phone=phone).first()
         if user and hasattr(user, "barber"):
@@ -100,15 +122,31 @@ class AdminBarberCreateSerializer(serializers.Serializer):
 
     @transaction.atomic
     def create(self, validated_data):
-        phone = validated_data.pop("phone")
+        email = validated_data.pop("email")
+        phone = validated_data.pop("phone", "") or None
         full_name = validated_data.pop("full_name")
 
-        user, _ = User.objects.get_or_create(
-            phone=phone, defaults={"full_name": full_name, "role": User.Role.BARBER}
-        )
-        if user.role != User.Role.BARBER:
-            user.role = User.Role.BARBER
-            user.save(update_fields=["role"])
+        # ⚠️ Qidiruv EMAIL bo'yicha: `get_or_create(phone=None)` bo'lsa, telefoni
+        # yo'q istalgan foydalanuvchini (masalan Google orqali kirgan mijozni)
+        # topib olardi.
+        user = User.objects.filter(email__iexact=email).first()
+        if user is None:
+            user = User.objects.create_user(
+                email=email, phone=phone, full_name=full_name, role=User.Role.BARBER
+            )
+        else:
+            updates = []
+            if user.role != User.Role.BARBER:
+                user.role = User.Role.BARBER
+                updates.append("role")
+            if phone and not user.phone:
+                user.phone = phone
+                updates.append("phone")
+            if full_name and not user.full_name:
+                user.full_name = full_name
+                updates.append("full_name")
+            if updates:
+                user.save(update_fields=updates)
 
         return Barber.objects.create(profile=user, **validated_data)
 

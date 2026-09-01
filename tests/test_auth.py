@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -25,7 +27,9 @@ class PhoneNormalizationTests(TestCase):
                 normalize_phone(raw)
 
 
-@override_settings(OTP_RETURN_IN_RESPONSE=True, DEBUG=True, SMS_BACKEND="console")
+@override_settings(
+    AUTH_SMS_ENABLED=True, OTP_RETURN_IN_RESPONSE=True, DEBUG=True, SMS_BACKEND="console"
+)
 class OTPFlowTests(TestCase):
     def setUp(self):
         # Throttle hisoblagichlari cache'da yashaydi va Django uni testlar orasida
@@ -103,6 +107,128 @@ class OTPFlowTests(TestCase):
         )
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.data["code"], "account_blocked")
+
+
+GOOGLE_INFO = {
+    "sub": "google-sub-123456",
+    "email": "mijoz@gmail.com",
+    "full_name": "Google Mijoz",
+    "picture": "",
+}
+
+
+@override_settings(GOOGLE_CLIENT_ID="test-client-id.apps.googleusercontent.com")
+class GoogleAuthTests(TestCase):
+    """Ro'yxatdan o'tishning asosiy yo'li — Google Sign-In."""
+
+    def setUp(self):
+        cache.clear()
+        self.api = APIClient()
+
+    def _login(self, info=None):
+        with patch("apps.accounts.views.verify_google_id_token", return_value=info or GOOGLE_INFO):
+            return self.api.post(
+                "/api/v1/auth/google/", {"id_token": "soxta-token"}, format="json"
+            )
+
+    def test_first_login_creates_client_account(self):
+        response = self._login()
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertTrue(response.data["is_new_user"])
+        self.assertEqual(response.data["user"]["email"], "mijoz@gmail.com")
+        self.assertEqual(response.data["user"]["role"], "client")
+
+        user = User.objects.get(email="mijoz@gmail.com")
+        self.assertEqual(user.google_sub, "google-sub-123456")
+        self.assertIsNone(user.phone)  # telefon so'ralmaydi
+
+    def test_cookies_are_set(self):
+        response = self._login()
+        self.assertIn(settings.AUTH_COOKIE_ACCESS, response.cookies)
+        self.assertTrue(response.cookies[settings.AUTH_COOKIE_ACCESS]["httponly"])
+
+    def test_second_login_reuses_same_account(self):
+        self._login()
+        response = self._login()
+        self.assertFalse(response.data["is_new_user"])
+        self.assertEqual(User.objects.filter(email="mijoz@gmail.com").count(), 1)
+
+    def test_admin_created_barber_keeps_role_after_google_login(self):
+        """Admin ustani email bilan yaratadi; usta Google orqali kirganda roli saqlanadi.
+
+        Bu buzilsa — usta har kirganda oddiy mijoz bo'lib qolardi va o'z paneliga
+        kira olmasdi.
+        """
+        User.objects.create_user(
+            email="usta@gmail.com", full_name="Usta", role=User.Role.BARBER
+        )
+        info = dict(GOOGLE_INFO, email="usta@gmail.com", sub="usta-sub-999")
+        response = self._login(info)
+
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertFalse(response.data["is_new_user"])
+        self.assertEqual(response.data["user"]["role"], "barber")
+        self.assertEqual(User.objects.filter(email="usta@gmail.com").count(), 1)
+
+    def test_blocked_account_cannot_login(self):
+        User.objects.create_user(
+            email="bloklangan@gmail.com", full_name="X", is_active=False
+        )
+        info = dict(GOOGLE_INFO, email="bloklangan@gmail.com", sub="blocked-sub")
+        response = self._login(info)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data["code"], "account_blocked")
+
+    def test_google_without_email_is_rejected(self):
+        info = dict(GOOGLE_INFO, email=None)
+        response = self._login(info)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["code"], "google_no_email")
+
+    @override_settings(GOOGLE_CLIENT_ID="")
+    def test_unconfigured_google_returns_error(self):
+        response = self.api.post("/api/v1/auth/google/", {"id_token": "x"}, format="json")
+        # DRF `AuthenticationFailed` ni 403 ga aylantiradi, chunki bu view'da
+        # authenticator yo'q (WWW-Authenticate header'i bo'lmaydi).
+        self.assertIn(response.status_code, (401, 403))
+
+
+class AuthMethodsTests(TestCase):
+    def setUp(self):
+        cache.clear()
+
+    @override_settings(GOOGLE_CLIENT_ID="abc.apps.googleusercontent.com", AUTH_SMS_ENABLED=False)
+    def test_reports_google_only(self):
+        response = APIClient().get("/api/v1/auth/methods/")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["google"])
+        self.assertFalse(response.data["sms"])
+        self.assertEqual(response.data["google_client_id"], "abc.apps.googleusercontent.com")
+
+    def test_available_without_login(self):
+        self.assertEqual(APIClient().get("/api/v1/auth/methods/").status_code, 200)
+
+
+class SMSDisabledTests(TestCase):
+    """SMS o'chirilganda (standart holat) OTP manzillari umuman bo'lmasligi kerak."""
+
+    def test_otp_endpoints_are_gone(self):
+        api = APIClient()
+        self.assertEqual(
+            api.post("/api/v1/auth/otp/request/", {"phone": "+998901234567"}, format="json").status_code,
+            404,
+        )
+        self.assertEqual(
+            api.post(
+                "/api/v1/auth/otp/verify/", {"phone": "+998901234567", "code": "1234"}, format="json"
+            ).status_code,
+            404,
+        )
+
+    def test_google_endpoint_still_exists(self):
+        # 400/401 bo'lishi mumkin, lekin 404 EMAS — manzil ro'yxatda turishi kerak.
+        response = APIClient().post("/api/v1/auth/google/", {"id_token": "x"}, format="json")
+        self.assertNotEqual(response.status_code, 404)
 
 
 class SessionTests(TestCase):

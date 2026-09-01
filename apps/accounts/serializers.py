@@ -81,6 +81,12 @@ class GoogleAuthSerializer(serializers.Serializer):
     id_token = serializers.CharField(help_text="Google Sign-In dan olingan `credential` (JWT)")
 
 
+class AuthMethodsSerializer(serializers.Serializer):
+    google = serializers.BooleanField(help_text="Google tugmasi ko'rsatilsinmi")
+    google_client_id = serializers.CharField(help_text="Google Sign-In uchun `client_id`")
+    sms = serializers.BooleanField(help_text="Telefon + SMS kod orqali kirish yoqilganmi")
+
+
 class AuthResponseSerializer(serializers.Serializer):
     user = UserSerializer()
     is_new_user = serializers.BooleanField()
