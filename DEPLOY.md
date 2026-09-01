@@ -269,3 +269,30 @@ Media fayllar `media` nomli Docker volume'da — uni ham nusxalang:
 ```bash
 docker run --rm -v osonnavbat_media:/data -v "$PWD:/backup" alpine tar czf /backup/media-$(date +%F).tar.gz -C /data .
 ```
+
+---
+
+## TLS sertifikat yangilash haqida muhim eslatma
+
+Birinchi sertifikat `--standalone` bilan olinadi (5-bosqich), chunki o'shanda
+nginx hali ishga tushmagan va 80-port bo'sh bo'ladi.
+
+⚠️ Lekin **yangilash** paytida nginx 80-portni band qilib turadi, shuning uchun
+`standalone` usuli ishlamaydi. Certbot esa birinchi olishda ishlatilgan usulni
+`renewal/<domen>.conf` fayliga yozib qo'yadi va keyin ham o'shani ishlatadi.
+
+Shu sababli sertifikat olingandan **keyin** yangilash usulini `webroot` ga
+o'zgartirish kerak:
+
+```bash
+sed -i 's|^authenticator = standalone$|authenticator = webroot\nwebroot_path = /var/www/certbot,|' deploy/certbot/conf/renewal/api.qulaynavbat.uz.conf
+printf '\n[[webroot_map]]\napi.qulaynavbat.uz = /var/www/certbot\n' >> deploy/certbot/conf/renewal/api.qulaynavbat.uz.conf
+```
+
+Tekshirish:
+
+```bash
+docker compose -f docker-compose.prod.yml run --rm --no-deps --entrypoint certbot certbot renew --dry-run
+```
+
+Bu qilinmasa sertifikat 90 kundan keyin yangilanmay, sayt HTTPS'da ochilmay qoladi.
