@@ -60,9 +60,19 @@ services:
     build: .
     restart: unless-stopped
     env_file: .env
+    # Dockerfile'dagi HEALTHCHECK `:8000/health/` ga uradi — bu konteynerda esa
+    # veb-server yo'q, shuning uchun u abadiy "unhealthy" bo'lib turardi.
+    healthcheck:
+      disable: true
     entrypoint: ["/bin/sh", "-c"]
+    # Birinchi tsiklgacha kutamiz: `api` migratsiyalarni qo'llab ulgurmasdan
+    # turib ishga tushsak, "column ... does not exist" xatosi chiqadi.
+    # `api` ni `service_healthy` qilib kutish kifoya emas — u healthcheck'ni
+    # migratsiyadan keyin o'tkazadi, lekin biz baribir zaxira sifatida
+    # birinchi urinishni kechiktiramiz.
     command: >
-      'while :; do
+      'sleep 60;
+       while :; do
          python manage.py send_booking_reminders || echo "eslatma buyrugi xato berdi";
          sleep 900;
        done'
@@ -70,6 +80,8 @@ services:
       db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      api:
         condition: service_healthy
 
   nginx:
