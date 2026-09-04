@@ -133,8 +133,9 @@ python3 -c "import secrets; print(secrets.token_urlsafe(64))"
 
 - `DJANGO_SECRET_KEY` — yuqoridagi buyruq natijasi
 - `POSTGRES_PASSWORD` va `DATABASE_URL` ichidagi parol (bir xil bo'lsin)
-- `SMS_BACKEND` + provayder kaliti (`ESKIZ_*` yoki `PLAYMOBILE_*`) — `console` prodga yaramaydi
-- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_ID` — **majburiy**, ro'yxatdan o'tishning yagona yo'li
+  (olish tartibi: [AUTH.md](AUTH.md)). `AUTH_SMS_ENABLED=False` bo'lgani uchun
+  usiz server ataylab ishga tushmaydi.
 - `DJANGO_ADMIN_URL` — `/admin/` da qoldirmang, masalan `boshqaruv-x7f2/`
 
 Birinchi super adminni avtomatik yaratish uchun (ixtiyoriy, `entrypoint.sh` shuni o'qiydi):
@@ -184,7 +185,7 @@ Kutilgan: `{"status": "ok", "service": "osonnavbat-api", "database": true}`
 CORS to'g'ri ishlayotganini tekshirish (frontend nomidan preflight):
 
 ```bash
-curl -si -X OPTIONS https://api.qulaynavbat.uz/api/v1/auth/otp/request/ -H "Origin: https://qulaynavbat.uz" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type,x-csrftoken" | grep -i access-control
+curl -si -X OPTIONS https://api.qulaynavbat.uz/api/v1/auth/google/ -H "Origin: https://qulaynavbat.uz" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type,x-csrftoken" | grep -i access-control
 ```
 
 Kutilgan javob:
@@ -240,10 +241,11 @@ API base URL: `https://api.qulaynavbat.uz/api/v1`
 
 - [ ] `DJANGO_DEBUG=False`
 - [ ] `DJANGO_SECRET_KEY` yangi va 50+ belgi *(bo'lmasa server ishga tushmaydi)*
+- [ ] `GOOGLE_CLIENT_ID` to'ldirilgan *(bo'lmasa server ishga tushmaydi)*
 - [ ] `OTP_TEST_PHONES` bo'sh *(bo'lmasa server ishga tushmaydi)*
 - [ ] `AUTH_COOKIE_SECURE=True` *(bo'lmasa server ishga tushmaydi)*
 - [ ] `OTP_RETURN_IN_RESPONSE=False`
-- [ ] `SMS_BACKEND` — `console` emas
+- [ ] `AUTH_SMS_ENABLED=False` *(kirish faqat Google orqali)*
 - [ ] `REDIS_URL` to'ldirilgan *(throttling shunga bog'liq)*
 - [ ] `NUM_PROXIES=1` *(nginx orqasida)*
 - [ ] `POSTGRES_PASSWORD` — standart emas
