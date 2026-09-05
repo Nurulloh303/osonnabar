@@ -1,0 +1,4329 @@
+openapi: 3.0.3
+info:
+  title: osonNavbat API
+  version: 1.0.0
+  description: |-
+    Sartaroshxona va go'zallik salonlari uchun onlayn navbat platformasi.
+
+    **Autentifikatsiya:** JWT tokenlar `httpOnly` cookie'da saqlanadi (`on_access` / `on_refresh`). Har bir o'zgartiruvchi so'rovda `X-CSRFToken` header'i talab qilinadi — tokenni `GET /api/v1/auth/csrf/` orqali oling. Swagger'dan test qilish uchun `Authorization: Bearer <token>` ham qo'llab-quvvatlanadi.
+paths:
+  /api/v1/auth/csrf/:
+    get:
+      operationId: auth_csrf_retrieve
+      description: |-
+        Frontend ilova yuklanishida bir marta chaqiradi va `csrftoken` cookie'sini oladi.
+
+        Keyingi POST/PATCH/DELETE so'rovlarda shu qiymatni `X-CSRFToken` header'iga qo'yish kerak.
+      summary: CSRF token olish
+      tags:
+      - auth
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+  /api/v1/auth/google/:
+    post:
+      operationId: auth_google_create
+      description: Google Sign-In `id_token`ini tekshirib, sessiya ochadi.
+      summary: Google orqali kirish
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleAuthRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GoogleAuthRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GoogleAuthRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+          description: ''
+  /api/v1/auth/logout/:
+    post:
+      operationId: auth_logout_create
+      description: Cookie'larni o'chiradi.
+      summary: Chiqish
+      tags:
+      - auth
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+  /api/v1/auth/me/:
+    get:
+      operationId: auth_me_retrieve
+      description: Joriy foydalanuvchi profili (o'qish / `full_name` yangilash).
+      tags:
+      - auth
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: auth_me_update
+      description: Joriy foydalanuvchi profili (o'qish / `full_name` yangilash).
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: auth_me_partial_update
+      description: Joriy foydalanuvchi profili (o'qish / `full_name` yangilash).
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/auth/me/avatar/:
+    post:
+      operationId: auth_me_avatar_create
+      description: Profil rasmini yuklash (multipart/form-data).
+      summary: Avatar yuklash
+      tags:
+      - auth
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AvatarUploadRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AvatarUploadRequest'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AvatarUploadRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    delete:
+      operationId: auth_me_avatar_destroy
+      description: Profil rasmini yuklash (multipart/form-data).
+      summary: Avatarni o'chirish
+      tags:
+      - auth
+      responses:
+        '204':
+          description: No response body
+  /api/v1/auth/methods/:
+    get:
+      operationId: auth_methods_retrieve
+      description: |-
+        Frontend qaysi kirish usullarini ko'rsatishini shu yerdan biladi.
+
+        Google tugmasi uchun `google_client_id` ham qaytariladi — u maxfiy emas,
+        brauzerda baribir ochiq ko'rinadi.
+      summary: Mavjud kirish usullari
+      tags:
+      - auth
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthMethods'
+          description: ''
+  /api/v1/auth/refresh/:
+    post:
+      operationId: auth_refresh_create
+      description: '`on_refresh` cookie''si asosida yangi access token beradi (rotatsiya
+        bilan).'
+      summary: Tokenni yangilash
+      tags:
+      - auth
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+  /api/v1/barber/me/:
+    get:
+      operationId: barber_me_retrieve
+      summary: Usta o'z profili
+      tags:
+      - barber-panel
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BarberSelf'
+          description: ''
+    put:
+      operationId: barber_me_update
+      summary: Usta o'z profili
+      tags:
+      - barber-panel
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BarberSelfRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BarberSelfRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BarberSelfRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BarberSelf'
+          description: ''
+    patch:
+      operationId: barber_me_partial_update
+      summary: Usta o'z profili
+      tags:
+      - barber-panel
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBarberSelfRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBarberSelfRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBarberSelfRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BarberSelf'
+          description: ''
+  /api/v1/barber/me/days-off/:
+    get:
+      operationId: barber_me_days_off_list
+      description: Dam olish kunlari (`/barber/me/days-off/`).
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - barber-panel
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BarberDayOff'
+          description: ''
+    post:
+      operationId: barber_me_days_off_create
+      description: Dam olish kunlari (`/barber/me/days-off/`).
+      tags:
+      - barber-panel
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BarberDayOffRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BarberDayOffRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BarberDayOffRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BarberDayOff'
+          description: ''
+  /api/v1/barber/me/days-off/{id}/:
+    delete:
+      operationId: barber_me_days_off_destroy
+      description: Dam olish kunlari (`/barber/me/days-off/`).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - barber-panel
+      responses:
+        '204':
+          description: No response body
+  /api/v1/barber/me/schedule/:
+    get:
+      operationId: barber_me_schedule_list
+      description: Usta o'z ish jadvalini boshqaradi (`/barber/me/schedule/`).
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - barber-panel
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BarberSchedule'
+          description: ''
+    post:
+      operationId: barber_me_schedule_create
+      description: Usta o'z ish jadvalini boshqaradi (`/barber/me/schedule/`).
+      tags:
+      - barber-panel
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BarberScheduleRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BarberScheduleRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BarberScheduleRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BarberSchedule'
+          description: ''
+  /api/v1/barber/me/schedule/{id}/:
+    get:
+      operationId: barber_me_schedule_retrieve
+      description: Usta o'z ish jadvalini boshqaradi (`/barber/me/schedule/`).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - barber-panel
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BarberSchedule'
+          description: ''
+    put:
+      operationId: barber_me_schedule_update
+      description: Usta o'z ish jadvalini boshqaradi (`/barber/me/schedule/`).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - barber-panel
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BarberScheduleRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BarberScheduleRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BarberScheduleRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BarberSchedule'
+          description: ''
+    patch:
+      operationId: barber_me_schedule_partial_update
+      description: Usta o'z ish jadvalini boshqaradi (`/barber/me/schedule/`).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - barber-panel
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBarberScheduleRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBarberScheduleRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBarberScheduleRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BarberSchedule'
+          description: ''
+    delete:
+      operationId: barber_me_schedule_destroy
+      description: Usta o'z ish jadvalini boshqaradi (`/barber/me/schedule/`).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - barber-panel
+      responses:
+        '204':
+          description: No response body
+  /api/v1/barber/me/schedule/bulk/:
+    put:
+      operationId: barber_me_schedule_bulk_update
+      description: Usta o'z ish jadvalini boshqaradi (`/barber/me/schedule/`).
+      summary: Haftalik jadvalni bir zarbda saqlash
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - barber-panel
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/BarberScheduleRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/BarberScheduleRequest'
+          multipart/form-data:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/BarberScheduleRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BarberSchedule'
+          description: ''
+  /api/v1/barber/me/schedule/weekdays/:
+    get:
+      operationId: barber_me_schedule_weekdays_retrieve
+      description: Usta o'z ish jadvalini boshqaradi (`/barber/me/schedule/`).
+      summary: Hafta kunlari lug'ati
+      tags:
+      - barber-panel
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/barber/me/stats/:
+    get:
+      operationId: barber_me_stats_retrieve
+      description: Usta uchun daromad va navbatlar statistikasi.
+      summary: Usta statistikasi
+      parameters:
+      - in: query
+        name: period
+        schema:
+          type: string
+        description: '`day` | `week` | `month` (default) | `year` | `all`'
+      tags:
+      - barber-panel
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/barbers/:
+    get:
+      operationId: barbers_list
+      description: '`?lat=&lng=&radius=` bo''yicha masofa hisoblash va saralash.'
+      summary: Ustalar ro'yxati / xarita
+      parameters:
+      - in: query
+        name: city
+        schema:
+          type: string
+      - in: query
+        name: district
+        schema:
+          type: string
+      - in: query
+        name: lat
+        schema:
+          type: number
+          format: float
+        description: Foydalanuvchi kengligi (Yandex Maps)
+      - in: query
+        name: lng
+        schema:
+          type: number
+          format: float
+        description: Foydalanuvchi uzunligi
+      - in: query
+        name: max_price
+        schema:
+          type: number
+        description: Eng arzon xizmat narxi bo'yicha
+      - in: query
+        name: min_rating
+        schema:
+          type: number
+          format: float
+      - in: query
+        name: ordering
+        schema:
+          type: string
+        description: '`distance`, `-rating_avg`, `rating_avg`, `-reviews_count`, `name`'
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: radius
+        schema:
+          type: number
+          format: float
+        description: 'Qidiruv radiusi, km (default: cheklovsiz)'
+      - in: query
+        name: salon
+        schema:
+          type: string
+          format: uuid
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: specialty
+        schema:
+          type: array
+          items:
+            type: string
+            title: Mutaxassislik
+            enum:
+            - kids
+            - men
+            - unisex
+            - women
+        description: |-
+          men | women | kids | unisex (bir nechta bo'lishi mumkin)
+
+          * `men` - Erkaklar
+          * `women` - Ayollar
+          * `kids` - Bolalar
+          * `unisex` - Aralash
+        explode: true
+        style: form
+      tags:
+      - barbers
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBarberListList'
+          description: ''
+  /api/v1/barbers/{id}/:
+    get:
+      operationId: barbers_retrieve
+      description: '`?lat=&lng=&radius=` bo''yicha masofa hisoblash va saralash.'
+      summary: Usta tafsilotlari (jadval bilan)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this usta.
+        required: true
+      tags:
+      - barbers
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BarberDetail'
+          description: ''
+  /api/v1/barbers/{id}/available-slots/:
+    get:
+      operationId: barbers_available_slots_retrieve
+      description: '`?lat=&lng=&radius=` bo''yicha masofa hisoblash va saralash.'
+      summary: Ustaning bo'sh vaqtlari
+      parameters:
+      - in: query
+        name: date
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this usta.
+        required: true
+      - in: query
+        name: service
+        schema:
+          type: string
+        description: Xizmat nomi (davomiylikni hisobga olish uchun)
+      tags:
+      - barbers
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailableSlotsResponse'
+          description: ''
+  /api/v1/barbers/{id}/next-slot/:
+    get:
+      operationId: barbers_next_slot_retrieve
+      description: '`?lat=&lng=&radius=` bo''yicha masofa hisoblash va saralash.'
+      summary: Ustaning eng yaqin bo'sh vaqti
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this usta.
+        required: true
+      tags:
+      - barbers
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/bookings/:
+    get:
+      operationId: bookings_list
+      description: |-
+        Mijoz — o'z bronlarini, usta — o'ziga tushgan bronlarni, super admin — hammasini ko'radi.
+
+        Filtrlar: `?status=pending&status=confirmed`, `?scope=upcoming|past|today`, `?date_from=&date_to=`.
+      summary: Navbatlar ro'yxati
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: scope
+        schema:
+          type: string
+        description: upcoming | past | today
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - bookings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBookingList'
+          description: ''
+    post:
+      operationId: bookings_create
+      summary: Navbatga yozilish
+      tags:
+      - bookings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BookingCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BookingCreateRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingCreate'
+          description: ''
+  /api/v1/bookings/{id}/:
+    get:
+      operationId: bookings_retrieve
+      summary: Bitta navbat
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - bookings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+          description: ''
+  /api/v1/bookings/{id}/cancel/:
+    post:
+      operationId: bookings_cancel_create
+      summary: Bekor qilish
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - bookings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingCancelRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BookingCancelRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BookingCancelRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+          description: ''
+  /api/v1/bookings/{id}/complete/:
+    post:
+      operationId: bookings_complete_create
+      summary: Yakunlash (usta)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - bookings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+          description: ''
+  /api/v1/bookings/{id}/confirm/:
+    post:
+      operationId: bookings_confirm_create
+      summary: Tasdiqlash (usta)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - bookings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+          description: ''
+  /api/v1/bookings/counts/:
+    get:
+      operationId: bookings_counts_retrieve
+      summary: Holatlar bo'yicha sanoq
+      tags:
+      - bookings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingStatusCount'
+          description: ''
+  /api/v1/notifications/:
+    get:
+      operationId: notifications_list
+      description: Faqat joriy foydalanuvchining xabarlari. `?is_read=false` bilan
+        filtrlash mumkin.
+      summary: Xabarnomalar tarixi
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - notifications
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationList'
+          description: ''
+  /api/v1/notifications/{id}/:
+    delete:
+      operationId: notifications_destroy
+      summary: Xabarnomani o'chirish
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - notifications
+      responses:
+        '204':
+          description: No response body
+  /api/v1/notifications/read/:
+    post:
+      operationId: notifications_read_create
+      description: 'Body bo''sh bo''lsa — barchasi. `{"ids": [...]}` bo''lsa — faqat
+        o''shalar.'
+      summary: O'qilgan deb belgilash
+      tags:
+      - notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MarkReadRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MarkReadRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MarkReadRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadCount'
+          description: ''
+    put:
+      operationId: notifications_read_update
+      description: 'Body bo''sh bo''lsa — barchasi. `{"ids": [...]}` bo''lsa — faqat
+        o''shalar.'
+      summary: O'qilgan deb belgilash
+      tags:
+      - notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MarkReadRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MarkReadRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MarkReadRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadCount'
+          description: ''
+  /api/v1/notifications/subscribe/:
+    post:
+      operationId: notifications_subscribe_create
+      description: Mijoz "Ruxsat berish" tugmasini bosgach, `pushManager.subscribe()`
+        qaytargan obyektni shu yerga yuboring.
+      summary: Brauzer obunasini saqlash
+      tags:
+      - notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PushSubscribeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PushSubscribeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PushSubscribeRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PushSubscription'
+          description: ''
+  /api/v1/notifications/subscriptions/:
+    get:
+      operationId: notifications_subscriptions_list
+      summary: Mening ulangan qurilmalarim
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - notifications
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPushSubscriptionList'
+          description: ''
+  /api/v1/notifications/unread-count/:
+    get:
+      operationId: notifications_unread_count_retrieve
+      summary: O'qilmagan xabarlar soni (qizil nuqtacha uchun)
+      tags:
+      - notifications
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadCount'
+          description: ''
+  /api/v1/notifications/unsubscribe/:
+    post:
+      operationId: notifications_unsubscribe_create
+      summary: Obunani bekor qilish
+      tags:
+      - notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PushUnsubscribeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PushUnsubscribeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PushUnsubscribeRequest'
+        required: true
+      responses:
+        '204':
+          description: No response body
+  /api/v1/notifications/vapid-key/:
+    get:
+      operationId: notifications_vapid_key_retrieve
+      description: Frontend `pushManager.subscribe({applicationServerKey})` uchun
+        ishlatadi. Public key maxfiy emas — u brauzerga baribir ochiq ko'rinadi.
+      summary: VAPID public key
+      tags:
+      - notifications
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VapidKey'
+          description: ''
+  /api/v1/reviews/:
+    get:
+      operationId: reviews_list
+      summary: Sharhlar ro'yxati
+      parameters:
+      - in: query
+        name: barber
+        schema:
+          type: string
+          format: uuid
+        description: Usta bo'yicha filtr
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: rating
+        schema:
+          type: integer
+        description: Aniq baho (1–5)
+      - in: query
+        name: salon
+        schema:
+          type: string
+          format: uuid
+        description: Salon bo'yicha filtr
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - reviews
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReviewList'
+          description: ''
+    post:
+      operationId: reviews_create
+      summary: Sharh qoldirish (yakunlangan navbat uchun)
+      tags:
+      - reviews
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: ''
+  /api/v1/reviews/{id}/:
+    get:
+      operationId: reviews_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this sharh.
+        required: true
+      tags:
+      - reviews
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: ''
+    delete:
+      operationId: reviews_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this sharh.
+        required: true
+      tags:
+      - reviews
+      responses:
+        '204':
+          description: No response body
+  /api/v1/reviews/{id}/reply/:
+    post:
+      operationId: reviews_reply_create
+      summary: Sharhga javob berish (usta)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this sharh.
+        required: true
+      tags:
+      - reviews
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BarberReplyRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BarberReplyRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BarberReplyRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: ''
+  /api/v1/reviews/summary/:
+    get:
+      operationId: reviews_summary_retrieve
+      summary: Reyting taqsimoti (1★…5★)
+      parameters:
+      - in: query
+        name: barber
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - reviews
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/salons/:
+    get:
+      operationId: salons_list
+      description: '`?lat=&lng=&radius=` bo''yicha masofa hisoblash va saralash.'
+      summary: Salonlar ro'yxati / xarita
+      parameters:
+      - in: query
+        name: city
+        schema:
+          type: string
+      - in: query
+        name: district
+        schema:
+          type: string
+      - in: query
+        name: lat
+        schema:
+          type: number
+          format: float
+        description: Foydalanuvchi kengligi (Yandex Maps)
+      - in: query
+        name: lng
+        schema:
+          type: number
+          format: float
+        description: Foydalanuvchi uzunligi
+      - in: query
+        name: min_rating
+        schema:
+          type: number
+          format: float
+      - in: query
+        name: ordering
+        schema:
+          type: string
+        description: '`distance`, `-rating_avg`, `rating_avg`, `-reviews_count`, `name`'
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: radius
+        schema:
+          type: number
+          format: float
+        description: 'Qidiruv radiusi, km (default: cheklovsiz)'
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: specialty
+        schema:
+          type: string
+      tags:
+      - salons
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSalonListList'
+          description: ''
+  /api/v1/salons/{id}/:
+    get:
+      operationId: salons_retrieve
+      description: '`?lat=&lng=&radius=` bo''yicha masofa hisoblash va saralash.'
+      summary: Salon tafsilotlari
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this salon.
+        required: true
+      tags:
+      - salons
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalonDetail'
+          description: ''
+  /api/v1/super-admin/barbers/:
+    get:
+      operationId: super_admin_barbers_list
+      summary: Ustalar ro'yxati (admin)
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: salon
+        schema:
+          type: string
+          format: uuid
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: specialty
+        schema:
+          type: string
+          title: Mutaxassislik
+          enum:
+          - kids
+          - men
+          - unisex
+          - women
+        description: |-
+          * `men` - Erkaklar
+          * `women` - Ayollar
+          * `kids` - Bolalar
+          * `unisex` - Aralash
+      - in: query
+        name: status
+        schema:
+          type: string
+          title: Holat
+          enum:
+          - active
+          - blocked
+        description: |-
+          * `active` - Faol
+          * `blocked` - Bloklangan
+      tags:
+      - admin-panel
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdminBarberList'
+          description: ''
+    post:
+      operationId: super_admin_barbers_create
+      summary: Yangi usta qo'shish
+      tags:
+      - admin-panel
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminBarberCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminBarberCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminBarberCreateRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBarberCreate'
+          description: ''
+  /api/v1/super-admin/barbers/{id}/:
+    get:
+      operationId: super_admin_barbers_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this usta.
+        required: true
+      tags:
+      - admin-panel
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBarber'
+          description: ''
+    put:
+      operationId: super_admin_barbers_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this usta.
+        required: true
+      tags:
+      - admin-panel
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminBarberRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminBarberRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminBarberRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBarber'
+          description: ''
+    patch:
+      operationId: super_admin_barbers_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this usta.
+        required: true
+      tags:
+      - admin-panel
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminBarberRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminBarberRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminBarberRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBarber'
+          description: ''
+    delete:
+      operationId: super_admin_barbers_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this usta.
+        required: true
+      tags:
+      - admin-panel
+      responses:
+        '204':
+          description: No response body
+  /api/v1/super-admin/barbers/{id}/activate/:
+    post:
+      operationId: super_admin_barbers_activate_create
+      summary: Faollashtirish
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this usta.
+        required: true
+      tags:
+      - admin-panel
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBarber'
+          description: ''
+  /api/v1/super-admin/barbers/{id}/block/:
+    post:
+      operationId: super_admin_barbers_block_create
+      summary: Bloklash
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this usta.
+        required: true
+      tags:
+      - admin-panel
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlockActionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BlockActionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BlockActionRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBarber'
+          description: ''
+  /api/v1/super-admin/salons/:
+    get:
+      operationId: super_admin_salons_list
+      summary: Salonlar (admin CRUD)
+      parameters:
+      - in: query
+        name: city
+        schema:
+          type: string
+      - in: query
+        name: district
+        schema:
+          type: string
+      - in: query
+        name: is_active
+        schema:
+          type: boolean
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: specialty
+        schema:
+          type: string
+          title: Yo'nalish
+          enum:
+          - kids
+          - men
+          - unisex
+          - women
+        description: |-
+          * `men` - Erkaklar
+          * `women` - Ayollar
+          * `kids` - Bolalar
+          * `unisex` - Aralash
+      tags:
+      - admin-panel
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdminSalonList'
+          description: ''
+    post:
+      operationId: super_admin_salons_create
+      tags:
+      - admin-panel
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminSalonRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminSalonRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminSalonRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSalon'
+          description: ''
+  /api/v1/super-admin/salons/{id}/:
+    get:
+      operationId: super_admin_salons_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this salon.
+        required: true
+      tags:
+      - admin-panel
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSalon'
+          description: ''
+    put:
+      operationId: super_admin_salons_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this salon.
+        required: true
+      tags:
+      - admin-panel
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminSalonRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminSalonRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminSalonRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSalon'
+          description: ''
+    patch:
+      operationId: super_admin_salons_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this salon.
+        required: true
+      tags:
+      - admin-panel
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminSalonRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminSalonRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminSalonRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSalon'
+          description: ''
+    delete:
+      operationId: super_admin_salons_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this salon.
+        required: true
+      tags:
+      - admin-panel
+      responses:
+        '204':
+          description: No response body
+  /api/v1/super-admin/stats/:
+    get:
+      operationId: super_admin_stats_retrieve
+      description: Butun platforma bo'yicha umumiy ko'rsatkichlar (`/super-admin`
+        sahifasi uchun).
+      summary: Platforma statistikasi
+      parameters:
+      - in: query
+        name: period
+        schema:
+          type: string
+        description: '`day` | `week` | `month` (default) | `year` | `all`'
+      tags:
+      - admin-panel
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/super-admin/users/:
+    get:
+      operationId: super_admin_users_list
+      summary: Foydalanuvchilar ro'yxati
+      parameters:
+      - in: query
+        name: is_active
+        schema:
+          type: boolean
+      - in: query
+        name: is_phone_verified
+        schema:
+          type: boolean
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: role
+        schema:
+          type: string
+          title: Rol
+          enum:
+          - barber
+          - client
+          - superadmin
+        description: |-
+          * `client` - Mijoz
+          * `barber` - Usta
+          * `superadmin` - Super admin
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - admin-panel
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdminUserList'
+          description: ''
+  /api/v1/super-admin/users/{id}/:
+    get:
+      operationId: super_admin_users_retrieve
+      summary: Foydalanuvchi kartochkasi
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this foydalanuvchi.
+        required: true
+      tags:
+      - admin-panel
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+          description: ''
+  /api/v1/super-admin/users/{id}/block/:
+    post:
+      operationId: super_admin_users_block_create
+      summary: Bloklash
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this foydalanuvchi.
+        required: true
+      tags:
+      - admin-panel
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlockActionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BlockActionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BlockActionRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+          description: ''
+  /api/v1/super-admin/users/{id}/set-role/:
+    post:
+      operationId: super_admin_users_set_role_create
+      description: 'Body: `{"role": "client|barber|superadmin"}`'
+      summary: Rolni o'zgartirish
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this foydalanuvchi.
+        required: true
+      tags:
+      - admin-panel
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: {}
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              additionalProperties: {}
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+          description: ''
+  /api/v1/super-admin/users/{id}/unblock/:
+    post:
+      operationId: super_admin_users_unblock_create
+      summary: Blokdan chiqarish
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this foydalanuvchi.
+        required: true
+      tags:
+      - admin-panel
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+          description: ''
+components:
+  schemas:
+    AdminBarber:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        full_name:
+          type: string
+          readOnly: true
+        phone:
+          type: string
+          readOnly: true
+        email:
+          type: string
+          readOnly: true
+        is_account_active:
+          type: boolean
+          readOnly: true
+        salon:
+          type: string
+          format: uuid
+          nullable: true
+        salon_name:
+          type: string
+          readOnly: true
+        specialty:
+          allOf:
+          - $ref: '#/components/schemas/SpecialtyEnum'
+          title: Mutaxassislik
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status4ecEnum'
+          title: Holat
+        bio:
+          type: string
+          title: O'zi haqida
+        experience_years:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Tajriba (yil)
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+        location_lat:
+          type: number
+          format: double
+          nullable: true
+          title: Kenglik (lat)
+        location_lng:
+          type: number
+          format: double
+          nullable: true
+          title: Uzunlik (lng)
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceItem'
+        default_slot_minutes:
+          type: integer
+          maximum: 240
+          minimum: 10
+          title: Standart slot (daqiqa)
+        rating_avg:
+          type: number
+          format: double
+          readOnly: true
+          title: O'rtacha reyting
+        reviews_count:
+          type: integer
+          readOnly: true
+          title: Sharhlar soni
+        completed_bookings:
+          type: integer
+          readOnly: true
+          title: Bajarilgan navbatlar
+        revenue_total:
+          type: integer
+          readOnly: true
+          default: 0
+        bookings_total:
+          type: integer
+          readOnly: true
+          default: 0
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan
+      required:
+      - bookings_total
+      - completed_bookings
+      - created_at
+      - email
+      - full_name
+      - id
+      - is_account_active
+      - phone
+      - rating_avg
+      - revenue_total
+      - reviews_count
+      - salon_name
+    AdminBarberCreate:
+      type: object
+      description: |-
+        Super admin yangi usta qo'shadi: profil + usta yozuvi bitta so'rovda.
+
+        ⚠️ `email` — MAJBURIY, chunki usta tizimga Google orqali kiradi. U shu
+        email bilan Google'da kirganda `GoogleAuthView` mavjud akkauntni topib,
+        `google_sub` ni bog'laydi va **usta roli saqlanib qoladi**. Email noto'g'ri
+        bo'lsa, usta kirganda unga alohida "mijoz" akkaunti ochilib ketadi.
+
+        `phone` — ixtiyoriy, faqat bog'lanish uchun.
+      properties:
+        email:
+          type: string
+          format: email
+          description: Ustaning Google akkaunti emaili — u shu orqali tizimga kiradi.
+        phone:
+          type: string
+        full_name:
+          type: string
+          maxLength: 150
+        salon:
+          type: string
+          format: uuid
+          nullable: true
+        specialty:
+          allOf:
+          - $ref: '#/components/schemas/SpecialtyEnum'
+          default: men
+        bio:
+          type: string
+        experience_years:
+          type: integer
+          maximum: 70
+          minimum: 0
+          default: 0
+        location_lat:
+          type: number
+          format: double
+          nullable: true
+        location_lng:
+          type: number
+          format: double
+          nullable: true
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceItem'
+        default_slot_minutes:
+          type: integer
+          maximum: 240
+          minimum: 10
+          default: 30
+      required:
+      - email
+      - full_name
+    AdminBarberCreateRequest:
+      type: object
+      description: |-
+        Super admin yangi usta qo'shadi: profil + usta yozuvi bitta so'rovda.
+
+        ⚠️ `email` — MAJBURIY, chunki usta tizimga Google orqali kiradi. U shu
+        email bilan Google'da kirganda `GoogleAuthView` mavjud akkauntni topib,
+        `google_sub` ni bog'laydi va **usta roli saqlanib qoladi**. Email noto'g'ri
+        bo'lsa, usta kirganda unga alohida "mijoz" akkaunti ochilib ketadi.
+
+        `phone` — ixtiyoriy, faqat bog'lanish uchun.
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          description: Ustaning Google akkaunti emaili — u shu orqali tizimga kiradi.
+        phone:
+          type: string
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        salon:
+          type: string
+          format: uuid
+          nullable: true
+        specialty:
+          allOf:
+          - $ref: '#/components/schemas/SpecialtyEnum'
+          default: men
+        bio:
+          type: string
+        experience_years:
+          type: integer
+          maximum: 70
+          minimum: 0
+          default: 0
+        location_lat:
+          type: number
+          format: double
+          nullable: true
+        location_lng:
+          type: number
+          format: double
+          nullable: true
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceItemRequest'
+        default_slot_minutes:
+          type: integer
+          maximum: 240
+          minimum: 10
+          default: 30
+      required:
+      - email
+      - full_name
+    AdminBarberRequest:
+      type: object
+      properties:
+        salon:
+          type: string
+          format: uuid
+          nullable: true
+        specialty:
+          allOf:
+          - $ref: '#/components/schemas/SpecialtyEnum'
+          title: Mutaxassislik
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status4ecEnum'
+          title: Holat
+        bio:
+          type: string
+          title: O'zi haqida
+        experience_years:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Tajriba (yil)
+        avatar:
+          type: string
+          format: binary
+          nullable: true
+        location_lat:
+          type: number
+          format: double
+          nullable: true
+          title: Kenglik (lat)
+        location_lng:
+          type: number
+          format: double
+          nullable: true
+          title: Uzunlik (lng)
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceItemRequest'
+        default_slot_minutes:
+          type: integer
+          maximum: 240
+          minimum: 10
+          title: Standart slot (daqiqa)
+    AdminSalon:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          title: Nomi
+          maxLength: 150
+        description:
+          type: string
+          title: Tavsif
+        specialty:
+          allOf:
+          - $ref: '#/components/schemas/SpecialtyEnum'
+          title: Yo'nalish
+        address:
+          type: string
+          title: Manzil
+          maxLength: 255
+        district:
+          type: string
+          title: Tuman
+          maxLength: 100
+        city:
+          type: string
+          title: Shahar
+          maxLength: 100
+        location_lat:
+          type: number
+          format: double
+          title: Kenglik (lat)
+        location_lng:
+          type: number
+          format: double
+          title: Uzunlik (lng)
+        phone:
+          type: string
+          title: Telefon
+          maxLength: 20
+        cover_image:
+          type: string
+          format: uri
+          nullable: true
+        owner:
+          type: string
+          format: uuid
+          nullable: true
+          title: Egasi
+        is_active:
+          type: boolean
+          title: Faol
+        rating_avg:
+          type: number
+          format: double
+          readOnly: true
+          title: O'rtacha reyting
+        reviews_count:
+          type: integer
+          readOnly: true
+          title: Sharhlar soni
+        barbers_count:
+          type: integer
+          readOnly: true
+          default: 0
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan
+      required:
+      - barbers_count
+      - created_at
+      - id
+      - location_lat
+      - location_lng
+      - name
+      - rating_avg
+      - reviews_count
+    AdminSalonRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nomi
+          maxLength: 150
+        description:
+          type: string
+          title: Tavsif
+        specialty:
+          allOf:
+          - $ref: '#/components/schemas/SpecialtyEnum'
+          title: Yo'nalish
+        address:
+          type: string
+          title: Manzil
+          maxLength: 255
+        district:
+          type: string
+          title: Tuman
+          maxLength: 100
+        city:
+          type: string
+          minLength: 1
+          title: Shahar
+          maxLength: 100
+        location_lat:
+          type: number
+          format: double
+          title: Kenglik (lat)
+        location_lng:
+          type: number
+          format: double
+          title: Uzunlik (lng)
+        phone:
+          type: string
+          title: Telefon
+          maxLength: 20
+        cover_image:
+          type: string
+          format: binary
+          nullable: true
+        owner:
+          type: string
+          format: uuid
+          nullable: true
+          title: Egasi
+        is_active:
+          type: boolean
+          title: Faol
+      required:
+      - location_lat
+      - location_lng
+      - name
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        phone:
+          type: string
+          readOnly: true
+          nullable: true
+          title: Telefon
+        email:
+          type: string
+          format: email
+          readOnly: true
+          nullable: true
+        full_name:
+          type: string
+          readOnly: true
+          title: F.I.SH.
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          readOnly: true
+          title: Rol
+        avatar:
+          type: string
+          format: uri
+          readOnly: true
+          nullable: true
+        is_active:
+          type: boolean
+          readOnly: true
+          title: Faol
+        is_phone_verified:
+          type: boolean
+          readOnly: true
+          title: Telefon tasdiqlangan
+        bookings_count:
+          type: integer
+          readOnly: true
+        total_spent:
+          type: integer
+          readOnly: true
+        barber_id:
+          type: string
+          nullable: true
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Ro'yxatdan o'tgan
+        last_login:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Oxirgi kirish
+      required:
+      - avatar
+      - barber_id
+      - bookings_count
+      - created_at
+      - email
+      - full_name
+      - id
+      - is_active
+      - is_phone_verified
+      - last_login
+      - phone
+      - role
+      - total_spent
+    AuthMethods:
+      type: object
+      properties:
+        google:
+          type: boolean
+          description: Google tugmasi ko'rsatilsinmi
+        google_client_id:
+          type: string
+          description: Google Sign-In uchun `client_id`
+        sms:
+          type: boolean
+          description: Telefon + SMS kod orqali kirish yoqilganmi
+      required:
+      - google
+      - google_client_id
+      - sms
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        is_new_user:
+          type: boolean
+        access:
+          type: string
+          description: Faqat `?with_tokens=1` bo'lganda (mobil ilova / Swagger uchun).
+            Brauzerda tokenlar httpOnly cookie'ga yoziladi.
+        refresh:
+          type: string
+      required:
+      - is_new_user
+      - user
+    AvailableSlot:
+      type: object
+      properties:
+        time:
+          type: string
+          description: HH:MM
+        is_available:
+          type: boolean
+        reason:
+          type: string
+          nullable: true
+      required:
+      - is_available
+      - time
+    AvailableSlotsResponse:
+      type: object
+      properties:
+        barber_id:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+        weekday:
+          $ref: '#/components/schemas/WeekdayEnum'
+        is_working_day:
+          type: boolean
+        slot_minutes:
+          type: integer
+        slots:
+          type: array
+          items:
+            $ref: '#/components/schemas/AvailableSlot'
+      required:
+      - barber_id
+      - date
+      - is_working_day
+      - slot_minutes
+      - slots
+      - weekday
+    AvatarUploadRequest:
+      type: object
+      properties:
+        avatar:
+          type: string
+          format: binary
+      required:
+      - avatar
+    BarberDayOff:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        date:
+          type: string
+          format: date
+          title: Sana
+        reason:
+          type: string
+          title: Sabab
+          maxLength: 255
+      required:
+      - date
+      - id
+    BarberDayOffRequest:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          title: Sana
+        reason:
+          type: string
+          title: Sabab
+          maxLength: 255
+      required:
+      - date
+    BarberDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        full_name:
+          type: string
+          readOnly: true
+        avatar:
+          type: string
+          nullable: true
+          readOnly: true
+        specialty:
+          allOf:
+          - $ref: '#/components/schemas/SpecialtyEnum'
+          title: Mutaxassislik
+        rating_avg:
+          type: number
+          format: double
+          title: O'rtacha reyting
+        reviews_count:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Sharhlar soni
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status4ecEnum'
+          title: Holat
+        salon:
+          allOf:
+          - $ref: '#/components/schemas/SalonShort'
+          readOnly: true
+        bio:
+          type: string
+          title: O'zi haqida
+        experience_years:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Tajriba (yil)
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceItem'
+          readOnly: true
+        price_from:
+          type: integer
+          nullable: true
+          readOnly: true
+        location_lat:
+          type: number
+          format: double
+          readOnly: true
+        location_lng:
+          type: number
+          format: double
+          readOnly: true
+        distance_km:
+          type: number
+          format: double
+          nullable: true
+          readOnly: true
+        completed_bookings:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Bajarilgan navbatlar
+        schedules:
+          type: array
+          items:
+            $ref: '#/components/schemas/BarberSchedule'
+          readOnly: true
+        days_off:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        default_slot_minutes:
+          type: integer
+          maximum: 240
+          minimum: 10
+          title: Standart slot (daqiqa)
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan
+      required:
+      - avatar
+      - created_at
+      - days_off
+      - distance_km
+      - full_name
+      - id
+      - location_lat
+      - location_lng
+      - price_from
+      - salon
+      - schedules
+      - services
+    BarberList:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        full_name:
+          type: string
+          readOnly: true
+        avatar:
+          type: string
+          nullable: true
+          readOnly: true
+        specialty:
+          allOf:
+          - $ref: '#/components/schemas/SpecialtyEnum'
+          title: Mutaxassislik
+        rating_avg:
+          type: number
+          format: double
+          title: O'rtacha reyting
+        reviews_count:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Sharhlar soni
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status4ecEnum'
+          title: Holat
+        salon:
+          allOf:
+          - $ref: '#/components/schemas/SalonShort'
+          readOnly: true
+        bio:
+          type: string
+          title: O'zi haqida
+        experience_years:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Tajriba (yil)
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceItem'
+          readOnly: true
+        price_from:
+          type: integer
+          nullable: true
+          readOnly: true
+        location_lat:
+          type: number
+          format: double
+          readOnly: true
+        location_lng:
+          type: number
+          format: double
+          readOnly: true
+        distance_km:
+          type: number
+          format: double
+          nullable: true
+          readOnly: true
+        completed_bookings:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Bajarilgan navbatlar
+      required:
+      - avatar
+      - distance_km
+      - full_name
+      - id
+      - location_lat
+      - location_lng
+      - price_from
+      - salon
+      - services
+    BarberReplyRequest:
+      type: object
+      properties:
+        barber_reply:
+          type: string
+          minLength: 1
+          maxLength: 1000
+      required:
+      - barber_reply
+    BarberSchedule:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        weekday:
+          allOf:
+          - $ref: '#/components/schemas/WeekdayEnum'
+          title: Hafta kuni
+          minimum: 0
+          maximum: 9223372036854775807
+        weekday_display:
+          type: string
+          readOnly: true
+        is_working:
+          type: boolean
+          title: Ishlaydi
+        start_time:
+          type: string
+          format: time
+          title: Ish boshlanishi
+        end_time:
+          type: string
+          format: time
+          title: Ish tugashi
+        break_start:
+          type: string
+          format: time
+          nullable: true
+          title: Tanaffus boshi
+        break_end:
+          type: string
+          format: time
+          nullable: true
+          title: Tanaffus oxiri
+        slot_minutes:
+          type: integer
+          maximum: 240
+          minimum: 10
+          title: Slot uzunligi (daqiqa)
+      required:
+      - id
+      - weekday
+      - weekday_display
+    BarberScheduleRequest:
+      type: object
+      properties:
+        weekday:
+          allOf:
+          - $ref: '#/components/schemas/WeekdayEnum'
+          title: Hafta kuni
+          minimum: 0
+          maximum: 9223372036854775807
+        is_working:
+          type: boolean
+          title: Ishlaydi
+        start_time:
+          type: string
+          format: time
+          title: Ish boshlanishi
+        end_time:
+          type: string
+          format: time
+          title: Ish tugashi
+        break_start:
+          type: string
+          format: time
+          nullable: true
+          title: Tanaffus boshi
+        break_end:
+          type: string
+          format: time
+          nullable: true
+          title: Tanaffus oxiri
+        slot_minutes:
+          type: integer
+          maximum: 240
+          minimum: 10
+          title: Slot uzunligi (daqiqa)
+      required:
+      - weekday
+    BarberSelf:
+      type: object
+      description: Usta o'z profilini tahrirlaydi (`/barber/me/`).
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        profile:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        salon:
+          type: string
+          format: uuid
+          nullable: true
+        specialty:
+          allOf:
+          - $ref: '#/components/schemas/SpecialtyEnum'
+          title: Mutaxassislik
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status4ecEnum'
+          readOnly: true
+          title: Holat
+        bio:
+          type: string
+          title: O'zi haqida
+        experience_years:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Tajriba (yil)
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+        location_lat:
+          type: number
+          format: double
+          nullable: true
+          title: Kenglik (lat)
+        location_lng:
+          type: number
+          format: double
+          nullable: true
+          title: Uzunlik (lng)
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceItem'
+        default_slot_minutes:
+          type: integer
+          maximum: 240
+          minimum: 10
+          title: Standart slot (daqiqa)
+        rating_avg:
+          type: number
+          format: double
+          readOnly: true
+          title: O'rtacha reyting
+        reviews_count:
+          type: integer
+          readOnly: true
+          title: Sharhlar soni
+        completed_bookings:
+          type: integer
+          readOnly: true
+          title: Bajarilgan navbatlar
+      required:
+      - completed_bookings
+      - id
+      - profile
+      - rating_avg
+      - reviews_count
+      - status
+    BarberSelfRequest:
+      type: object
+      description: Usta o'z profilini tahrirlaydi (`/barber/me/`).
+      properties:
+        salon:
+          type: string
+          format: uuid
+          nullable: true
+        specialty:
+          allOf:
+          - $ref: '#/components/schemas/SpecialtyEnum'
+          title: Mutaxassislik
+        bio:
+          type: string
+          title: O'zi haqida
+        experience_years:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Tajriba (yil)
+        avatar:
+          type: string
+          format: binary
+          nullable: true
+        location_lat:
+          type: number
+          format: double
+          nullable: true
+          title: Kenglik (lat)
+        location_lng:
+          type: number
+          format: double
+          nullable: true
+          title: Uzunlik (lng)
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceItemRequest'
+        default_slot_minutes:
+          type: integer
+          maximum: 240
+          minimum: 10
+          title: Standart slot (daqiqa)
+    BarberShort:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        full_name:
+          type: string
+          readOnly: true
+        avatar:
+          type: string
+          nullable: true
+          readOnly: true
+        specialty:
+          allOf:
+          - $ref: '#/components/schemas/SpecialtyEnum'
+          title: Mutaxassislik
+        rating_avg:
+          type: number
+          format: double
+          title: O'rtacha reyting
+        reviews_count:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Sharhlar soni
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status4ecEnum'
+          title: Holat
+      required:
+      - avatar
+      - full_name
+      - id
+    BlockActionRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 255
+    Booking:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        client:
+          allOf:
+          - $ref: '#/components/schemas/ClientShort'
+          readOnly: true
+        barber:
+          allOf:
+          - $ref: '#/components/schemas/BarberShort'
+          readOnly: true
+        salon:
+          allOf:
+          - $ref: '#/components/schemas/SalonShort'
+          readOnly: true
+        booking_date:
+          type: string
+          format: date
+          title: Sana
+        booking_time:
+          type: string
+          format: time
+          title: Vaqt
+        duration_minutes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Davomiyligi (daqiqa)
+        starts_at:
+          type: string
+          format: date-time
+          readOnly: true
+        ends_at:
+          type: string
+          format: date-time
+          readOnly: true
+        service_name:
+          type: string
+          title: Xizmat
+          maxLength: 100
+        price:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Narx (so'm)
+        status:
+          allOf:
+          - $ref: '#/components/schemas/BookingStatusEnum'
+          title: Holat
+        status_display:
+          type: string
+          readOnly: true
+        client_note:
+          type: string
+          title: Mijoz izohi
+          maxLength: 500
+        cancel_reason:
+          type: string
+          title: Bekor qilish sababi
+          maxLength: 255
+        confirmed_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        cancelled_at:
+          type: string
+          format: date-time
+          nullable: true
+        can_cancel:
+          type: boolean
+          readOnly: true
+        can_review:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan
+      required:
+      - barber
+      - booking_date
+      - booking_time
+      - can_cancel
+      - can_review
+      - client
+      - created_at
+      - ends_at
+      - id
+      - salon
+      - service_name
+      - starts_at
+      - status_display
+    BookingCancelRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 255
+    BookingCreate:
+      type: object
+      description: |-
+        Mijoz navbat oladi.
+
+        ⚠️ `price` va `duration_minutes` MIJOZDAN QABUL QILINMAYDI — ular ustaning
+        xizmatlar ro'yxatidan server tomonda olinadi.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        barber:
+          type: string
+          format: uuid
+        booking_date:
+          type: string
+          format: date
+          title: Sana
+        booking_time:
+          type: string
+          format: time
+          title: Vaqt
+        service_name:
+          type: string
+          title: Xizmat
+          maxLength: 100
+        client_note:
+          type: string
+          title: Mijoz izohi
+          maxLength: 500
+      required:
+      - barber
+      - booking_date
+      - booking_time
+      - id
+      - service_name
+    BookingCreateRequest:
+      type: object
+      description: |-
+        Mijoz navbat oladi.
+
+        ⚠️ `price` va `duration_minutes` MIJOZDAN QABUL QILINMAYDI — ular ustaning
+        xizmatlar ro'yxatidan server tomonda olinadi.
+      properties:
+        barber:
+          type: string
+          format: uuid
+        booking_date:
+          type: string
+          format: date
+          title: Sana
+        booking_time:
+          type: string
+          format: time
+          title: Vaqt
+        service_name:
+          type: string
+          minLength: 1
+          title: Xizmat
+          maxLength: 100
+        client_note:
+          type: string
+          title: Mijoz izohi
+          maxLength: 500
+      required:
+      - barber
+      - booking_date
+      - booking_time
+      - service_name
+    BookingStatusCount:
+      type: object
+      properties:
+        pending:
+          type: integer
+        confirmed:
+          type: integer
+        completed:
+          type: integer
+        cancelled:
+          type: integer
+      required:
+      - cancelled
+      - completed
+      - confirmed
+      - pending
+    BookingStatusEnum:
+      enum:
+      - pending
+      - confirmed
+      - completed
+      - cancelled
+      type: string
+      description: |-
+        * `pending` - Kutilmoqda
+        * `confirmed` - Tasdiqlangan
+        * `completed` - Yakunlangan
+        * `cancelled` - Bekor qilingan
+    ClientShort:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        full_name:
+          type: string
+          readOnly: true
+        phone:
+          type: string
+          readOnly: true
+        avatar:
+          type: string
+          format: uri
+          readOnly: true
+      required:
+      - avatar
+      - full_name
+      - id
+      - phone
+    GoogleAuthRequest:
+      type: object
+      properties:
+        id_token:
+          type: string
+          minLength: 1
+          description: Google Sign-In dan olingan `credential` (JWT)
+      required:
+      - id_token
+    KindEnum:
+      enum:
+      - booking_confirmed
+      - booking_cancelled
+      - booking_completed
+      - booking_reminder
+      - booking_created
+      - system
+      type: string
+      description: |-
+        * `booking_confirmed` - Navbat tasdiqlandi
+        * `booking_cancelled` - Navbat bekor qilindi
+        * `booking_completed` - Navbat yakunlandi
+        * `booking_reminder` - Navbat eslatmasi
+        * `booking_created` - Yangi navbat
+        * `system` - Tizim xabari
+    MarkReadRequest:
+      type: object
+      description: Bo'sh body — hammasini o'qilgan deb belgilaydi.
+      properties:
+        ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Bo'sh qoldirilsa — barcha o'qilmagan xabarlar belgilanadi.
+    Message:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+          title: Sarlavha
+        body:
+          type: string
+          readOnly: true
+          title: Matn
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/KindEnum'
+          readOnly: true
+          title: Turi
+        kind_display:
+          type: string
+          readOnly: true
+        url:
+          type: string
+          readOnly: true
+          title: Havola
+        booking_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        is_read:
+          type: boolean
+          readOnly: true
+          title: O'qilgan
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan
+      required:
+      - body
+      - booking_id
+      - created_at
+      - id
+      - is_read
+      - kind
+      - kind_display
+      - title
+      - url
+    PaginatedAdminBarberList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminBarber'
+    PaginatedAdminSalonList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminSalon'
+    PaginatedAdminUserList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminUser'
+    PaginatedBarberListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/BarberList'
+    PaginatedBookingList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Booking'
+    PaginatedNotificationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+    PaginatedPushSubscriptionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PushSubscription'
+    PaginatedReviewList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+    PaginatedSalonListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SalonList'
+    PatchedAdminBarberRequest:
+      type: object
+      properties:
+        salon:
+          type: string
+          format: uuid
+          nullable: true
+        specialty:
+          allOf:
+          - $ref: '#/components/schemas/SpecialtyEnum'
+          title: Mutaxassislik
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status4ecEnum'
+          title: Holat
+        bio:
+          type: string
+          title: O'zi haqida
+        experience_years:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Tajriba (yil)
+        avatar:
+          type: string
+          format: binary
+          nullable: true
+        location_lat:
+          type: number
+          format: double
+          nullable: true
+          title: Kenglik (lat)
+        location_lng:
+          type: number
+          format: double
+          nullable: true
+          title: Uzunlik (lng)
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceItemRequest'
+        default_slot_minutes:
+          type: integer
+          maximum: 240
+          minimum: 10
+          title: Standart slot (daqiqa)
+    PatchedAdminSalonRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nomi
+          maxLength: 150
+        description:
+          type: string
+          title: Tavsif
+        specialty:
+          allOf:
+          - $ref: '#/components/schemas/SpecialtyEnum'
+          title: Yo'nalish
+        address:
+          type: string
+          title: Manzil
+          maxLength: 255
+        district:
+          type: string
+          title: Tuman
+          maxLength: 100
+        city:
+          type: string
+          minLength: 1
+          title: Shahar
+          maxLength: 100
+        location_lat:
+          type: number
+          format: double
+          title: Kenglik (lat)
+        location_lng:
+          type: number
+          format: double
+          title: Uzunlik (lng)
+        phone:
+          type: string
+          title: Telefon
+          maxLength: 20
+        cover_image:
+          type: string
+          format: binary
+          nullable: true
+        owner:
+          type: string
+          format: uuid
+          nullable: true
+          title: Egasi
+        is_active:
+          type: boolean
+          title: Faol
+    PatchedBarberScheduleRequest:
+      type: object
+      properties:
+        weekday:
+          allOf:
+          - $ref: '#/components/schemas/WeekdayEnum'
+          title: Hafta kuni
+          minimum: 0
+          maximum: 9223372036854775807
+        is_working:
+          type: boolean
+          title: Ishlaydi
+        start_time:
+          type: string
+          format: time
+          title: Ish boshlanishi
+        end_time:
+          type: string
+          format: time
+          title: Ish tugashi
+        break_start:
+          type: string
+          format: time
+          nullable: true
+          title: Tanaffus boshi
+        break_end:
+          type: string
+          format: time
+          nullable: true
+          title: Tanaffus oxiri
+        slot_minutes:
+          type: integer
+          maximum: 240
+          minimum: 10
+          title: Slot uzunligi (daqiqa)
+    PatchedBarberSelfRequest:
+      type: object
+      description: Usta o'z profilini tahrirlaydi (`/barber/me/`).
+      properties:
+        salon:
+          type: string
+          format: uuid
+          nullable: true
+        specialty:
+          allOf:
+          - $ref: '#/components/schemas/SpecialtyEnum'
+          title: Mutaxassislik
+        bio:
+          type: string
+          title: O'zi haqida
+        experience_years:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Tajriba (yil)
+        avatar:
+          type: string
+          format: binary
+          nullable: true
+        location_lat:
+          type: number
+          format: double
+          nullable: true
+          title: Kenglik (lat)
+        location_lng:
+          type: number
+          format: double
+          nullable: true
+          title: Uzunlik (lng)
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceItemRequest'
+        default_slot_minutes:
+          type: integer
+          maximum: 240
+          minimum: 10
+          title: Standart slot (daqiqa)
+    PatchedUserRequest:
+      type: object
+      description: '`/auth/me/` va barcha nested foydalanuvchi javoblari uchun.'
+      properties:
+        full_name:
+          type: string
+          title: F.I.SH.
+          maxLength: 150
+        avatar:
+          type: string
+          format: binary
+          nullable: true
+    PushSubscribeRequest:
+      type: object
+      description: |-
+        Brauzerdagi `PushSubscription` obyektini shundayligicha qabul qiladi.
+
+        Frontend `JSON.stringify(subscription)` natijasini yuborsa yetarli — u
+        `{endpoint, keys: {p256dh, auth}, expirationTime}` ko'rinishida bo'ladi.
+      properties:
+        endpoint:
+          type: string
+          format: uri
+          minLength: 1
+          maxLength: 2000
+        keys:
+          type: object
+          additionalProperties:
+            type: string
+            minLength: 1
+          writeOnly: true
+        expirationTime:
+          type: string
+          nullable: true
+      required:
+      - endpoint
+      - keys
+    PushSubscription:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        endpoint:
+          type: string
+          readOnly: true
+        user_agent:
+          type: string
+          readOnly: true
+          title: Qurilma
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Qo'shilgan
+        last_success_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Oxirgi muvaffaqiyatli yuborish
+      required:
+      - created_at
+      - endpoint
+      - id
+      - last_success_at
+      - user_agent
+    PushUnsubscribeRequest:
+      type: object
+      properties:
+        endpoint:
+          type: string
+          format: uri
+          minLength: 1
+          maxLength: 2000
+      required:
+      - endpoint
+    Review:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        booking:
+          type: string
+          format: uuid
+          title: Navbat
+        barber:
+          type: string
+          format: uuid
+          readOnly: true
+          title: Usta
+        salon:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        client:
+          allOf:
+          - $ref: '#/components/schemas/ReviewAuthor'
+          readOnly: true
+        service_name:
+          type: string
+          readOnly: true
+        rating:
+          type: integer
+          maximum: 5
+          minimum: 1
+          title: Baho
+        comment:
+          type: string
+          title: Izoh
+          maxLength: 1000
+        barber_reply:
+          type: string
+          readOnly: true
+          title: Usta javobi
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan
+      required:
+      - barber
+      - barber_reply
+      - booking
+      - client
+      - created_at
+      - id
+      - rating
+      - salon
+      - service_name
+    ReviewAuthor:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        full_name:
+          type: string
+          description: 'Maxfiylik: to''liq ism o''rniga "Nurulloh A." ko''rinishi.'
+          readOnly: true
+        avatar:
+          type: string
+          format: uri
+          readOnly: true
+      required:
+      - avatar
+      - full_name
+      - id
+    ReviewRequest:
+      type: object
+      properties:
+        booking:
+          type: string
+          format: uuid
+          title: Navbat
+        rating:
+          type: integer
+          maximum: 5
+          minimum: 1
+          title: Baho
+        comment:
+          type: string
+          title: Izoh
+          maxLength: 1000
+      required:
+      - booking
+      - rating
+    RoleEnum:
+      enum:
+      - client
+      - barber
+      - superadmin
+      type: string
+      description: |-
+        * `client` - Mijoz
+        * `barber` - Usta
+        * `superadmin` - Super admin
+    SalonDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          title: Nomi
+          maxLength: 150
+        specialty:
+          allOf:
+          - $ref: '#/components/schemas/SpecialtyEnum'
+          title: Yo'nalish
+        address:
+          type: string
+          title: Manzil
+          maxLength: 255
+        district:
+          type: string
+          title: Tuman
+          maxLength: 100
+        city:
+          type: string
+          title: Shahar
+          maxLength: 100
+        location_lat:
+          type: number
+          format: double
+          title: Kenglik (lat)
+        location_lng:
+          type: number
+          format: double
+          title: Uzunlik (lng)
+        phone:
+          type: string
+          title: Telefon
+          maxLength: 20
+        cover_image:
+          type: string
+          format: uri
+          nullable: true
+          title: Muqova rasmi
+        rating_avg:
+          type: number
+          format: double
+          title: O'rtacha reyting
+        reviews_count:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Sharhlar soni
+        barbers_count:
+          type: integer
+          readOnly: true
+        price_from:
+          type: integer
+          nullable: true
+          readOnly: true
+        distance_km:
+          type: number
+          format: double
+          nullable: true
+          readOnly: true
+        is_active:
+          type: boolean
+          title: Faol
+        description:
+          type: string
+          title: Tavsif
+        barbers:
+          type: array
+          items:
+            $ref: '#/components/schemas/BarberShort'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Yaratilgan
+      required:
+      - barbers
+      - barbers_count
+      - created_at
+      - distance_km
+      - id
+      - location_lat
+      - location_lng
+      - name
+      - price_from
+    SalonList:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          title: Nomi
+          maxLength: 150
+        specialty:
+          allOf:
+          - $ref: '#/components/schemas/SpecialtyEnum'
+          title: Yo'nalish
+        address:
+          type: string
+          title: Manzil
+          maxLength: 255
+        district:
+          type: string
+          title: Tuman
+          maxLength: 100
+        city:
+          type: string
+          title: Shahar
+          maxLength: 100
+        location_lat:
+          type: number
+          format: double
+          title: Kenglik (lat)
+        location_lng:
+          type: number
+          format: double
+          title: Uzunlik (lng)
+        phone:
+          type: string
+          title: Telefon
+          maxLength: 20
+        cover_image:
+          type: string
+          format: uri
+          nullable: true
+          title: Muqova rasmi
+        rating_avg:
+          type: number
+          format: double
+          title: O'rtacha reyting
+        reviews_count:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Sharhlar soni
+        barbers_count:
+          type: integer
+          readOnly: true
+        price_from:
+          type: integer
+          nullable: true
+          readOnly: true
+        distance_km:
+          type: number
+          format: double
+          nullable: true
+          readOnly: true
+        is_active:
+          type: boolean
+          title: Faol
+      required:
+      - barbers_count
+      - distance_km
+      - id
+      - location_lat
+      - location_lng
+      - name
+      - price_from
+    SalonShort:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          title: Nomi
+          maxLength: 150
+        address:
+          type: string
+          title: Manzil
+          maxLength: 255
+        district:
+          type: string
+          title: Tuman
+          maxLength: 100
+        city:
+          type: string
+          title: Shahar
+          maxLength: 100
+        location_lat:
+          type: number
+          format: double
+          title: Kenglik (lat)
+        location_lng:
+          type: number
+          format: double
+          title: Uzunlik (lng)
+      required:
+      - id
+      - location_lat
+      - location_lng
+      - name
+    ServiceItem:
+      type: object
+      description: '`Barber.services` JSON ro''yxatining bitta elementi.'
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        price:
+          type: integer
+          minimum: 0
+          description: so'mda, butun son
+        duration_minutes:
+          type: integer
+          maximum: 240
+          minimum: 10
+          default: 30
+      required:
+      - name
+      - price
+    ServiceItemRequest:
+      type: object
+      description: '`Barber.services` JSON ro''yxatining bitta elementi.'
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        price:
+          type: integer
+          minimum: 0
+          description: so'mda, butun son
+        duration_minutes:
+          type: integer
+          maximum: 240
+          minimum: 10
+          default: 30
+      required:
+      - name
+      - price
+    SpecialtyEnum:
+      enum:
+      - men
+      - women
+      - kids
+      - unisex
+      type: string
+      description: |-
+        * `men` - Erkaklar
+        * `women` - Ayollar
+        * `kids` - Bolalar
+        * `unisex` - Aralash
+    Status4ecEnum:
+      enum:
+      - active
+      - blocked
+      type: string
+      description: |-
+        * `active` - Faol
+        * `blocked` - Bloklangan
+    UnreadCount:
+      type: object
+      properties:
+        unread:
+          type: integer
+      required:
+      - unread
+    User:
+      type: object
+      description: '`/auth/me/` va barcha nested foydalanuvchi javoblari uchun.'
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        phone:
+          type: string
+          readOnly: true
+          nullable: true
+          title: Telefon
+        email:
+          type: string
+          format: email
+          readOnly: true
+          nullable: true
+        full_name:
+          type: string
+          title: F.I.SH.
+          maxLength: 150
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          readOnly: true
+          title: Rol
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+        is_phone_verified:
+          type: boolean
+          readOnly: true
+          title: Telefon tasdiqlangan
+        is_active:
+          type: boolean
+          readOnly: true
+          title: Faol
+        barber_id:
+          type: string
+          nullable: true
+          readOnly: true
+        is_profile_complete:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Ro'yxatdan o'tgan
+      required:
+      - barber_id
+      - created_at
+      - email
+      - id
+      - is_active
+      - is_phone_verified
+      - is_profile_complete
+      - phone
+      - role
+    UserRequest:
+      type: object
+      description: '`/auth/me/` va barcha nested foydalanuvchi javoblari uchun.'
+      properties:
+        full_name:
+          type: string
+          title: F.I.SH.
+          maxLength: 150
+        avatar:
+          type: string
+          format: binary
+          nullable: true
+    VapidKey:
+      type: object
+      properties:
+        public_key:
+          type: string
+        configured:
+          type: boolean
+      required:
+      - configured
+      - public_key
+    WeekdayEnum:
+      enum:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      - 6
+      type: integer
+      description: |-
+        * `0` - Dushanba
+        * `1` - Seshanba
+        * `2` - Chorshanba
+        * `3` - Payshanba
+        * `4` - Juma
+        * `5` - Shanba
+        * `6` - Yakshanba
+tags:
+- name: auth
+  description: Ro'yxatdan o'tish, OTP, Google, sessiya
+- name: salons
+  description: Salonlar
+- name: barbers
+  description: Ustalar, jadval, bo'sh vaqtlar
+- name: bookings
+  description: Navbatlar (bronlar)
+- name: reviews
+  description: Sharhlar va reyting
+- name: barber-panel
+  description: Usta paneli
+- name: admin-panel
+  description: Super admin paneli

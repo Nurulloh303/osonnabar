@@ -1,6 +1,7 @@
 from datetime import time, timedelta
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -8,7 +9,13 @@ from rest_framework.test import APIClient
 from apps.bookings.models import Booking, BookingStatus
 from apps.salons.models import Barber, BarberSchedule
 
-from .factories import auth_client, make_barber, make_client_user, make_superadmin
+from .factories import (
+    auth_client,
+    make_barber,
+    make_client_user,
+    make_image,
+    make_superadmin,
+)
 
 
 class BarberPanelTests(TestCase):
@@ -51,6 +58,33 @@ class BarberPanelTests(TestCase):
         self.assertEqual(response.status_code, 200, response.data)
         self.barber.refresh_from_db()
         self.assertEqual(self.barber.services[0]["price"], 60000)
+
+    def test_barber_uploads_own_photo(self):
+        """Usta o'z rasmini `multipart/form-data` bilan yuklaydi.
+
+        `services` majburiy emas, shuning uchun faqat rasm yuborish yetarli.
+        """
+        response = self.api.patch(
+            "/api/v1/barber/me/", {"avatar": make_image()}, format="multipart"
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+
+        self.barber.refresh_from_db()
+        self.assertTrue(self.barber.avatar.name.startswith("barbers/"))
+
+    def test_uploaded_photo_appears_in_public_list(self):
+        """Xaritadagi belgi va kartochka shu maydondan rasm oladi."""
+        self.api.patch("/api/v1/barber/me/", {"avatar": make_image()}, format="multipart")
+
+        response = APIClient().get("/api/v1/barbers/")
+        row = next(r for r in response.data["results"] if r["id"] == str(self.barber.id))
+        self.assertIsNotNone(row["avatar"])
+        self.assertTrue(row["avatar"].startswith("http"))  # to'liq URL qaytadi
+
+    def test_non_image_file_rejected(self):
+        fake = SimpleUploadedFile("zararli.html", b"<script>alert(1)</script>", "text/html")
+        response = self.api.patch("/api/v1/barber/me/", {"avatar": fake}, format="multipart")
+        self.assertEqual(response.status_code, 400)
 
     def test_duplicate_service_names_rejected(self):
         response = self.api.patch(

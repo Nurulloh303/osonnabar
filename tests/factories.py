@@ -89,6 +89,18 @@ def auth_client(user) -> APIClient:
     return api
 
 
+def make_image(name: str = "avatar.png", size: tuple[int, int] = (64, 64)):
+    """Testlar uchun haqiqiy PNG — Pillow uni ocha olishi kerak."""
+    from io import BytesIO
+
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from PIL import Image
+
+    buffer = BytesIO()
+    Image.new("RGB", size, color=(120, 90, 200)).save(buffer, format="PNG")
+    return SimpleUploadedFile(name, buffer.getvalue(), content_type="image/png")
+
+
 def future_date(days: int = 2):
     """Yakshanbaga tushib qolmasligi uchun ish kunini qaytaradi."""
     day = timezone.localdate() + timedelta(days=days)
